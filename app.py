@@ -129,7 +129,7 @@ def init_db(db):
         hashed_password = generate_password_hash(os.environ.get('ADMIN_PASSWORD', 'changeme123'))
         cursor.execute(
             'INSERT INTO users (name, email, password_hash, role, email_verified, created_at) VALUES (%s, %s, %s, %s, %s, %s)',
-            ('Admin User', 'admin@21centurysolutions.com', hashed_password, 'admin', TRUE, datetime.now())
+            ('Admin User', 'admin@21centurysolutions.com', hashed_password, 'admin', True, datetime.now())
         )
         print("Default admin user created: admin@21centurysolutions.com / adminpassword")
     init_scan_results_table(db)
