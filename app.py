@@ -708,7 +708,7 @@ def verify_email(token):
     user = cursor.fetchone()
     if user:
         cursor.execute(
-            'UPDATE users SET email_verified = 1, verification_token = NULL WHERE id = %s',
+            'UPDATE users SET email_verified = TRUE, verification_token = NULL WHERE id = %s',
             (user['id'],)
         )
         db.commit()
