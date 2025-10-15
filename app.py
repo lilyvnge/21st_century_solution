@@ -55,7 +55,7 @@ def init_db(db):
             email VARCHAR(255) UNIQUE NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
             role VARCHAR(50) DEFAULT 'user',
-            email_verified BOOLEAN DEFAULT 0,
+            email_verified BOOLEAN DEFAULT FALSE,
             verification_token VARCHAR(255),
             reset_token VARCHAR(255),
             reset_token_expiry TIMESTAMP,
