@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Admin Activities - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<!-- Admin Activities Content -->
+<h1>Admin Activities</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Activity</th>
+            <th>User</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for activity in activities %}
+        <tr>
+            <td>{{ activity.action }}</td>
+            <td>{{ activity.user_name }}</td>
+            <td>{{ activity.timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

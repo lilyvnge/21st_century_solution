@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Comprehensive Scanner - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Comprehensive Vulnerability Scanner</h1>
+    <p>Run multiple vulnerability scans simultaneously.</p>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="url">Target URL:</label>
+            <input type="url" id="url" name="url" class="form-control" 
+                   placeholder="https://example.com" required 
+                   value="{{ url if url else '' }}">
+        </div>
+        
+        <div class="form-group">
+            <label>Scan Types:</label><br>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="scan_types" value="sql" id="sql_scan" checked>
+                <label class="form-check-label" for="sql_scan">SQL Injection</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="scan_types" value="xss" id="xss_scan" checked>
+                <label class="form-check-label" for="xss_scan">Cross-Site Scripting (XSS)</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="scan_types" value="csrf" id="csrf_scan" checked>
+                <label class="form-check-label" for="csrf_scan">Cross-Site Request Forgery (CSRF)</label>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Start Comprehensive Scan</button>
+    </form>
+
+    {% if scan_completed %}
+    <div class="results mt-4">
+        <h3>Scan Results for: {{ url }}</h3>
+        <div class="alert alert-{{ 'danger' if risk_level == 'High' else 'warning' if risk_level == 'Medium' else 'success' }}">
+            <strong>Risk Level: {{ risk_level }}</strong>
+            <br>Found {{ vulnerabilities|length }} vulnerabilities across all scan types
+        </div>
+
+        {% if vulnerabilities %}
+        <div class="vulnerabilities">
+            <h4>Vulnerabilities Found:</h4>
+            {% for vuln in vulnerabilities %}
+            <div class="card mb-3 border-{{ 'danger' if vuln.type in ['SQL Injection', 'XSS'] else 'warning' }}">
+                <div class="card-header bg-{{ 'danger' if vuln.type in ['SQL Injection', 'XSS'] else 'warning' }} text-white">
+                    {{ vuln.type }} Vulnerability
+                </div>
+                <div class="card-body">
+                    {% if vuln.parameter %}
+                    <p><strong>Parameter:</strong> {{ vuln.parameter }}</p>
+                    <p><strong>Payload:</strong> <code>{{ vuln.payload }}</code></p>
+                    {% endif %}
+                    <p><strong>Evidence:</strong> {{ vuln.evidence }}</p>
+                    {% if vuln.url %}
+                    <p><strong>URL:</strong> <a href="{{ vuln.url }}" target="_blank">{{ vuln.url }}</a></p>
+                    {% endif %}
+                    {% if vuln.method %}
+                    <p><strong>Method:</strong> {{ vuln.method }}</p>
+                    {% endif %}
+                    {% if vuln.form_action %}
+                    <p><strong>Form Action:</strong> {{ vuln.form_action }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            No vulnerabilities detected in the selected scan types.
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

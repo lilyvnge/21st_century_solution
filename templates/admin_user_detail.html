@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}User Details - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>User <span class="text-accent">Details</span></h2>
+            <p>View and manage user information.</p>
+        </div>
+        <div class="user-detail">
+            <p><strong>User ID:</strong> {{ user.id }}</p>
+            <p><strong>Name:</strong> {{ user.user_name }}</p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>Role:</strong> {{ user.role }}</p>
+            <p><strong>Status:</strong> {{ user.status }}</p>
+            {% if user.profile_image %}
+            <p><strong>Profile Image:</strong><br>
+                <img src="{{ url_for('static', filename='uploads/' ~ user.profile_image) }}" alt="Profile Image" style="max-width:150px;">
+            </p>
+            {% endif %}
+        </div>
+        <div class="user-actions mt-lg">
+            <a href="/admin/edit_user/{{ user.id }}" class="btn btn-primary">Edit User</a>
+            <a href="/admin/users" class="btn btn-secondary">Back to Users</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

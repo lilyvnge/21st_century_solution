@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Edit User - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Edit <span class="text-accent">User</span></h2>
+            <p>Modify user details below.</p>
+        </div>
+        <form method="POST" action="/admin/edit_user/{{ user.id }}">
+            <div class="form-group">
+                <label for="user_name">Name</label>
+                <input type="text" id="user_name" name="user_name" value="{{ user.user_name }}" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="{{ user.email }}" required>
+            </div>
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role" name="role" required>
+                    <option value="client" {% if user.role == 'client' %}selected{% endif %}>Client</option>
+                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status" required>
+                    <option value="active" {% if user.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if user.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</section>
+{% endblock %}

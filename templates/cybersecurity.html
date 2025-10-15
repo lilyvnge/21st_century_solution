@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}CyberSecurity Solutions - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<section class="hero" style="min-height: 40vh;">
+    <div class="container">
+        <div class="hero-content">
+            <h1>Cybersecurity Solutions</h1>
+            <p>Comprehensive protection for your digital assets with our enterprise-grade security services</p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Our <span class="text-accent">Security Services</span></h2>
+            <p>Protecting your business from evolving cyber threats</p>
+        </div>
+
+        <div class="gallery">
+            <div class="gallery-item">
+                <img src="../static/cyber1.jpg" alt="Network Security">
+                <div class="gallery-overlay">
+                    <h3><a href="/network_security" style="color: white;">Network Security</a></h3>
+                    <p>Advanced protection for your network infrastructure</p>
+                </div>
+            </div>
+
+            <div class="gallery-item">
+                <img src="../static/cyber2.jpg" alt="Cloud Security">
+                <div class="gallery-overlay">
+                    <h3><a href="/cloud_security" style="color: white;">Cloud Security</a></h3>
+                    <p>Comprehensive cloud environment protection</p>
+                </div>
+            </div>
+
+            <div class="gallery-item">
+                <img src="../static/cyber3.jpg" alt="Endpoint Protection">
+                <div class="gallery-overlay">
+                    <h3><a href="/endpoint_protection" style="color: white;">Endpoint Protection</a></h3>
+                    <p>Device-level security for all endpoints</p>
+                </div>
+            </div>
+
+            <div class="gallery-item">
+                <img src="../static/cyber4.jpg" alt="Threat Intelligence">
+                <div class="gallery-overlay">
+                    <h3><a href="/threat_intelligence" style="color: white;">Threat Intelligence</a></h3>
+                    <p>Proactive identification of emerging threats</p>
+                </div>
+            </div>
+
+            <div class="gallery-item">
+                <img src="../static/cyber5.jpg" alt="Incident Response">
+                <div class="gallery-overlay">
+                    <h3><a href="/incident_response" style="color: white;">Incident Response</a></h3>
+                    <p>Rapid response to security incidents</p>
+                </div>
+            </div>
+
+            <div class="gallery-item">
+                <img src="../static/cyber6.jpg" alt="Security Audits">
+                <div class="gallery-overlay">
+                    <h3><a href="/security_audits" style="color: white;">Security Audits</a></h3>
+                    <p>Comprehensive security assessments</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section" style="background-color: var(--color-darker);">
+    <div class="container">
+        <div class="section-title">
+            <h2>Our <span class="text-accent">Approach</span></h2>
+            <p>A comprehensive strategy for cybersecurity protection</p>
+        </div>
+
+        <div class="services-grid">
+            <div class="card service-card">
+                <div class="service-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3>Assessment</h3>
+                <p>We begin with a thorough assessment of your current security posture, identifying vulnerabilities and potential risks.</p>
+            </div>
+
+            <div class="card service-card">
+                <div class="service-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h3>Implementation</h3>
+                <p>Our experts implement tailored security solutions designed to address your specific vulnerabilities and business needs.</p>
+            </div>
+
+            <div class="card service-card">
+                <div class="service-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Protection</h3>
+                <p>We provide ongoing monitoring and maintenance to ensure your systems remain protected against evolving threats.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Add the tools section we created earlier -->
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Free Online Security <span class="text-accent">Tools</span></h2>
+            <p>Try our professional cybersecurity assessment tools</p>
+        </div>
+
+        <div class="services-grid">
+            <div class="card service-card">
+                <div class="service-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Security Headers Check</h3>
+                <p>Analyze HTTP security headers for any website to identify potential vulnerabilities.</p>
+                {% if session.get('user_id') %}
+                    <a href="/tools/security_headers" class="btn btn-primary">Try Tool</a>
+                {% else %}
+                    <a href="/login" class="btn btn-secondary">Login to Access</a>
+                {% endif %}
+            </div>
+
+            <div class="card service-card">
+                <div class="service-icon">
+                    <i class="fas fa-network-wired"></i>
+                </div>
+                <h3>DNS Analysis</h3>
+                <p>Comprehensive DNS record lookup with WHOIS information and security analysis.</p>
+                {% if session.get('user_id') %}
+                    <a href="/tools/dns_lookup" class="btn btn-primary">Try Tool</a>
+                {% else %}
+                    <a href="/login" class="btn btn-secondary">Login to Access</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if not session.get('user_id') %}
+        <div class="text-center mt-lg">
+            <p>Want access to all our online security tools?</p>
+            <a href="/register" class="btn btn-primary">Create Free Account</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

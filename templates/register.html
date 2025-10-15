@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Register - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Client <span class="text-accent">Registration</span></h2>
+            <p>Create your account to access the client portal.</p>
+        </div>
+        <form method="POST" action="/register">
+            <div class="form-group">
+                <label for="user_name">Name</label>
+                <input type="text" id="user_name" name="user_name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Register</button>
+            <a href="/login" class="btn btn-secondary">Already have an account?</a>
+        </form>
+    </div>
+</section>
+{% endblock %}

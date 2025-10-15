@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Admin Activities - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Admin <span class="text-accent">Activities</span></h2>
+            <p>View recent activities performed by admins</p>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Activity</th>
+                        <th>User</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activity in activities %}
+                    <tr>
+                        <td>{{ activity.action }}</td>
+                        <td>{{ activity.user_name }}</td>
+                        <td>{{ activity.timestamp }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="text-center mt-lg">
+            <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,702 @@
+{% extends "base.html" %}
+
+{% block title %}Cloud Security Services - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cloud-hero {
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                    url("{{ url_for('static', filename='cloud-security-bg.jpg') }}");
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 100px 0;
+        text-align: center;
+    }
+    
+    .cloud-hero h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+    
+    .cloud-hero p {
+        font-size: 1.2rem;
+        max-width: 800px;
+        margin: 0 auto 2rem;
+    }
+    
+    .services-section {
+        padding: 80px 0;
+        background-color: var(--color-light);
+    }
+    
+    .section-title {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+    
+    .section-title h2 {
+        font-size: 2.5rem;
+        color: var(--color-dark);
+        margin-bottom: 1rem;
+    }
+    
+    .section-title p {
+        color: var(--color-mid);
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+    
+    .service-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .service-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .service-icon {
+        background: var(--color-primary);
+        color: white;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+    }
+    
+    .service-content {
+        padding: 1.5rem;
+    }
+    
+    .service-content h3 {
+        margin-bottom: 1rem;
+        color: var(--color-dark);
+    }
+    
+    .service-content p {
+        color: var(--color-mid);
+        margin-bottom: 1.5rem;
+    }
+    
+    .service-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .service-checkbox input {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .service-checkbox label {
+        font-weight: 500;
+        cursor: pointer;
+    }
+    
+    .cloud-providers {
+        background: white;
+        padding: 3rem 0;
+        text-align: center;
+    }
+    
+    .providers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+    
+    .provider-logo {
+        background: var(--color-light);
+        padding: 1.5rem;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100px;
+        transition: transform 0.3s ease;
+    }
+    
+    .provider-logo:hover {
+        transform: scale(1.05);
+    }
+    
+    .provider-logo i {
+        font-size: 3rem;
+        color: var(--color-dark);
+    }
+    
+    .contact-section {
+        padding: 80px 0;
+        background: white;
+    }
+    
+    .contact-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+    }
+    
+    .contact-info h3 {
+        margin-bottom: 1.5rem;
+        color: var(--color-dark);
+    }
+    
+    .contact-details {
+        margin-bottom: 2rem;
+    }
+    
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .contact-item i {
+        color: var(--color-primary);
+        font-size: 1.2rem;
+        width: 20px;
+    }
+    
+    .contact-form {
+        background: var(--color-light);
+        padding: 2rem;
+        border-radius: 10px;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--color-dark);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-family: 'Open Sans', sans-serif;
+        font-size: 1rem;
+    }
+    
+    textarea.form-control {
+        min-height: 120px;
+        resize: vertical;
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-family: 'Open Sans', sans-serif;
+        font-size: 1rem;
+        background: white;
+    }
+    
+    .selected-services {
+        background: white;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-top: 1rem;
+        border-left: 4px solid var(--color-primary);
+    }
+    
+    .selected-services h4 {
+        margin-bottom: 0.5rem;
+        color: var(--color-dark);
+    }
+    
+    .selected-services ul {
+        padding-left: 1.5rem;
+    }
+    
+    .selected-services li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .quote-section {
+        padding: 80px 0;
+        background: var(--color-primary);
+        color: white;
+        text-align: center;
+    }
+    
+    .quote-section h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .quote-section p {
+        font-size: 1.2rem;
+        max-width: 700px;
+        margin: 0 auto 2rem;
+    }
+    
+    .security-features {
+        padding: 80px 0;
+        background: var(--color-light);
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin-top: 3rem;
+    }
+    
+    .feature-item {
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .feature-icon {
+        background: var(--color-primary);
+        color: white;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 1.5rem;
+    }
+    
+    .feature-item h4 {
+        margin-bottom: 1rem;
+        color: var(--color-dark);
+    }
+    
+    .feature-item p {
+        color: var(--color-mid);
+    }
+    
+    @media (max-width: 768px) {
+        .contact-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .cloud-hero h1 {
+            font-size: 2.2rem;
+        }
+        
+        .section-title h2 {
+            font-size: 2rem;
+        }
+        
+        .providers-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="cloud-hero">
+    <div class="container">
+        <h1>Cloud Security Solutions</h1>
+        <p>Secure your cloud infrastructure with our comprehensive security services. Protect your data, applications, and workloads across multi-cloud environments.</p>
+        <a href="#services" class="btn btn-primary">Explore Cloud Security Services</a>
+    </div>
+</section>
+
+<!-- Services Section -->
+<section id="services" class="services-section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Our Cloud Security Services</h2>
+            <p>Select the cloud security services that match your business needs. Our experts will design a customized security strategy for your cloud environment.</p>
+        </div>
+        
+        <div class="services-grid" id="services-grid">
+            <!-- Service 1 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-cloud-shield-alt"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Cloud Infrastructure Security</h3>
+                    <p>Comprehensive security for your cloud infrastructure including compute, storage, and networking services across all major cloud providers.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="infrastructure" name="service" value="Cloud Infrastructure Security">
+                        <label for="infrastructure">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 2 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-key"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Data Encryption & Key Management</h3>
+                    <p>End-to-end encryption for data at rest and in transit with secure key management and rotation policies.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="encryption" name="service" value="Data Encryption & Key Management">
+                        <label for="encryption">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 3 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-user-lock"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Identity & Access Management (IAM)</h3>
+                    <p>Granular access controls, multi-factor authentication, and identity governance for cloud resources and applications.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="iam" name="service" value="Identity & Access Management (IAM)">
+                        <label for="iam">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 4 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-shield-check"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Cloud Compliance & Governance</h3>
+                    <p>Ensure compliance with industry regulations (GDPR, HIPAA, PCI DSS) and implement governance frameworks for cloud operations.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="compliance" name="service" value="Cloud Compliance & Governance">
+                        <label for="compliance">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 5 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-binoculars"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Cloud Security Monitoring</h3>
+                    <p>24/7 monitoring, threat detection, and incident response for your cloud environment with real-time alerts and reporting.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="monitoring" name="service" value="Cloud Security Monitoring">
+                        <label for="monitoring">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 6 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-box"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Container & Kubernetes Security</h3>
+                    <p>Secure your containerized applications and Kubernetes clusters with runtime protection and vulnerability management.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="container" name="service" value="Container & Kubernetes Security">
+                        <label for="container">Select this service</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service 7 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-server"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Serverless Security</h3>
+                    <p>Protect your serverless functions and applications with specialized security controls and monitoring.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="serverless" name="service" value="Serverless Security">
+                        <label for="serverless">Select this service</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service 8 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Cloud Data Loss Prevention</h3>
+                    <p>Prevent data leakage and unauthorized data transfers with advanced DLP policies and monitoring.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="dlp" name="service" value="Cloud Data Loss Prevention">
+                        <label for="dlp">Select this service</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Cloud Providers Section -->
+<section class="cloud-providers">
+    <div class="container">
+        <div class="section-title">
+            <h2>Supported Cloud Platforms</h2>
+            <p>We provide comprehensive security solutions for all major cloud platforms and environments.</p>
+        </div>
+        
+        <div class="providers-grid">
+            <div class="provider-logo">
+                <i class="fab fa-aws"></i>
+            </div>
+            <div class="provider-logo">
+                <i class="fab fa-microsoft"></i>
+            </div>
+            <div class="provider-logo">
+                <i class="fab fa-google"></i>
+            </div>
+            <div class="provider-logo">
+                <i class="fas fa-cloud"></i>
+            </div>
+            <div class="provider-logo">
+                <i class="fab fa-digital-ocean"></i>
+            </div>
+            <div class="provider-logo">
+                <i class="fab fa-ibm"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Security Features Section -->
+<section class="security-features">
+    <div class="container">
+        <div class="section-title">
+            <h2>Our Cloud Security Approach</h2>
+            <p>We implement a comprehensive security framework to protect your cloud assets across all layers.</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-chess-board"></i>
+                </div>
+                <h4>Zero Trust Architecture</h4>
+                <p>Implement least privilege access and verify every request as though it originates from an untrusted network.</p>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <h4>Defense in Depth</h4>
+                <p>Multiple layers of security controls provide redundancy and protection against various attack vectors.</p>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h4>Automated Security</h4>
+                <p>Leverage infrastructure as code and automated security controls for consistent protection.</p>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h4>Continuous Monitoring</h4>
+                <p>Real-time monitoring and analytics to detect and respond to threats immediately.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="contact-section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Get Cloud Security Consultation</h2>
+            <p>Contact us for a free cloud security assessment and customized protection strategy for your environment.</p>
+        </div>
+        
+        <div class="contact-container">
+            <div class="contact-info">
+                <h3>Cloud Security Experts</h3>
+                <div class="contact-details">
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>123 Security Ave, Cyber City</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <span>+1 (555) 123-4567</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>cloud-security@21centurysolutions.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-clock"></i>
+                        <span>24/7 Cloud Security Operations Center</span>
+                    </div>
+                </div>
+                
+                <h3>Why Our Cloud Security?</h3>
+                <ul>
+                    <li>Certified cloud security professionals (CCSP, AWS Security, Azure Security)</li>
+                    <li>Multi-cloud security expertise</li>
+                    <li>Compliance with cloud-specific frameworks (CSA, Cloud Controls Matrix)</li>
+                    <li>Automated security implementation</li>
+                    <li>Proven track record with enterprise cloud migrations</li>
+                </ul>
+            </div>
+            
+            <div class="contact-form">
+                <form id="cloud-contact-form">
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="company">Company</label>
+                        <input type="text" id="company" name="company" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cloud-provider">Primary Cloud Provider</label>
+                        <select id="cloud-provider" name="cloud_provider" class="form-select">
+                            <option value="">Select your cloud provider</option>
+                            <option value="aws">Amazon Web Services (AWS)</option>
+                            <option value="azure">Microsoft Azure</option>
+                            <option value="gcp">Google Cloud Platform</option>
+                            <option value="multi">Multi-Cloud</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="message">Your Cloud Security Requirements</label>
+                        <textarea id="message" name="message" class="form-control" placeholder="Tell us about your cloud environment and security needs..."></textarea>
+                    </div>
+                    
+                    <div class="selected-services" id="selected-services-display" style="display: none;">
+                        <h4>Selected Services:</h4>
+                        <ul id="services-list"></ul>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">Request Cloud Security Assessment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quote Section -->
+<section class="quote-section">
+    <div class="container">
+        <h2>Secure Your Cloud Transformation</h2>
+        <p>Don't let security concerns slow down your cloud adoption. Our experts will ensure your cloud environment is secure, compliant, and optimized.</p>
+        <a href="#services" class="btn btn-secondary">View Cloud Security Services</a>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const serviceCheckboxes = document.querySelectorAll('input[name="service"]');
+        const selectedServicesDisplay = document.getElementById('selected-services-display');
+        const servicesList = document.getElementById('services-list');
+        
+        // Update selected services display
+        function updateSelectedServices() {
+            const selectedServices = Array.from(serviceCheckboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+            
+            if (selectedServices.length > 0) {
+                servicesList.innerHTML = '';
+                selectedServices.forEach(service => {
+                    const li = document.createElement('li');
+                    li.textContent = service;
+                    servicesList.appendChild(li);
+                });
+                selectedServicesDisplay.style.display = 'block';
+            } else {
+                selectedServicesDisplay.style.display = 'none';
+            }
+        }
+        
+        // Add event listeners to all service checkboxes
+        serviceCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedServices);
+        });
+        
+        // Form submission handler
+        const contactForm = document.getElementById('cloud-contact-form');
+        contactForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get selected services
+            const selectedServices = Array.from(serviceCheckboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+            
+            // Get cloud provider
+            const cloudProvider = document.getElementById('cloud-provider').value;
+            const providerText = document.getElementById('cloud-provider').options[document.getElementById('cloud-provider').selectedIndex].text;
+            
+            // In a real application, you would send this data to your server
+            // For now, we'll just show a success message
+            let message = 'Thank you for your interest in our cloud security services! We will contact you shortly to discuss your requirements.';
+            
+            if (cloudProvider) {
+                message += `\n\nWe noted your primary cloud provider: ${providerText}`;
+            }
+            
+            if (selectedServices.length > 0) {
+                message += `\n\nSelected services: ${selectedServices.join(', ')}`;
+            }
+            
+            alert(message);
+            
+            // Reset form
+            contactForm.reset();
+            selectedServicesDisplay.style.display = 'none';
+        });
+    });
+</script>
+{% endblock %}

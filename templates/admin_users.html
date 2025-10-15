@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Admin Users - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Admin <span class="text-accent">Users</span></h2>
+            <p>Manage all registered users.</p>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.user_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.role }}</td>
+                        <td>{{ user.status }}</td>
+                        <td>
+                            <a href="/admin/user/{{ user.id }}" class="btn btn-secondary btn-sm">View</a>
+                            <a href="/admin/edit_user/{{ user.id }}" class="btn btn-primary btn-sm">Edit</a>
+                            <a href="/admin/user/{{ user.id }}/delete" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this user?');">Delete</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-center mt-lg">
+            <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,9 @@
+Flask
+gunicorn
+psycopg2-binary
+requests
+beautifulsoup4
+python-whois
+dnspython
+Werkzeug
+python-dotenv

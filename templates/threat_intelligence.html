@@ -1,0 +1,890 @@
+{% extends "base.html" %}
+
+{% block title %}Threat Intelligence Services - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .threat-hero {
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                    url("{{ url_for('static', filename='threat-intelligence-bg.jpg') }}");
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 100px 0;
+        text-align: center;
+    }
+    
+    .threat-hero h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+    
+    .threat-hero p {
+        font-size: 1.2rem;
+        max-width: 800px;
+        margin: 0 auto 2rem;
+    }
+    
+    .services-section {
+        padding: 80px 0;
+        background-color: var(--color-light);
+    }
+    
+    .section-title {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+    
+    .section-title h2 {
+        font-size: 2.5rem;
+        color: var(--color-dark);
+        margin-bottom: 1rem;
+    }
+    
+    .section-title p {
+        color: var(--color-mid);
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+    
+    .service-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .service-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .service-icon {
+        background: var(--color-primary);
+        color: white;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+    }
+    
+    .service-content {
+        padding: 1.5rem;
+    }
+    
+    .service-content h3 {
+        margin-bottom: 1rem;
+        color: var(--color-dark);
+    }
+    
+    .service-content p {
+        color: var(--color-mid);
+        margin-bottom: 1.5rem;
+    }
+    
+    .service-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .service-checkbox input {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .service-checkbox label {
+        font-weight: 500;
+        cursor: pointer;
+    }
+    
+    .intel-sources {
+        background: white;
+        padding: 3rem 0;
+        text-align: center;
+    }
+    
+    .sources-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+    
+    .source-item {
+        background: var(--color-light);
+        padding: 1.5rem;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 120px;
+        transition: transform 0.3s ease;
+    }
+    
+    .source-item:hover {
+        transform: scale(1.05);
+    }
+    
+    .source-item i {
+        font-size: 2.5rem;
+        color: var(--color-primary);
+        margin-bottom: 1rem;
+    }
+    
+    .source-item span {
+        font-weight: 500;
+        color: var(--color-dark);
+    }
+    
+    .contact-section {
+        padding: 80px 0;
+        background: white;
+    }
+    
+    .contact-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+    }
+    
+    .contact-info h3 {
+        margin-bottom: 1.5rem;
+        color: var(--color-dark);
+    }
+    
+    .contact-details {
+        margin-bottom: 2rem;
+    }
+    
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .contact-item i {
+        color: var(--color-primary);
+        font-size: 1.2rem;
+        width: 20px;
+    }
+    
+    .contact-form {
+        background: var(--color-light);
+        padding: 2rem;
+        border-radius: 10px;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--color-dark);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-family: 'Open Sans', sans-serif;
+        font-size: 1rem;
+    }
+    
+    textarea.form-control {
+        min-height: 120px;
+        resize: vertical;
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-family: 'Open Sans', sans-serif;
+        font-size: 1rem;
+        background: white;
+    }
+    
+    .selected-services {
+        background: white;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-top: 1rem;
+        border-left: 4px solid var(--color-primary);
+    }
+    
+    .selected-services h4 {
+        margin-bottom: 0.5rem;
+        color: var(--color-dark);
+    }
+    
+    .selected-services ul {
+        padding-left: 1.5rem;
+    }
+    
+    .selected-services li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .quote-section {
+        padding: 80px 0;
+        background: var(--color-primary);
+        color: white;
+        text-align: center;
+    }
+    
+    .quote-section h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .quote-section p {
+        font-size: 1.2rem;
+        max-width: 700px;
+        margin: 0 auto 2rem;
+    }
+    
+    .intel-features {
+        padding: 80px 0;
+        background: var(--color-light);
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin-top: 3rem;
+    }
+    
+    .feature-item {
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .feature-icon {
+        background: var(--color-primary);
+        color: white;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 1.5rem;
+    }
+    
+    .feature-item h4 {
+        margin-bottom: 1rem;
+        color: var(--color-dark);
+    }
+    
+    .feature-item p {
+        color: var(--color-mid);
+    }
+    
+    .intel-workflow {
+        padding: 80px 0;
+        background: white;
+    }
+    
+    .workflow-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 3rem;
+        position: relative;
+    }
+    
+    .workflow-steps::before {
+        content: '';
+        position: absolute;
+        top: 40px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--color-primary);
+        z-index: 1;
+    }
+    
+    .workflow-step {
+        text-align: center;
+        position: relative;
+        z-index: 2;
+        flex: 1;
+    }
+    
+    .step-number {
+        background: var(--color-primary);
+        color: white;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    
+    .workflow-step h4 {
+        margin-bottom: 1rem;
+        color: var(--color-dark);
+    }
+    
+    .workflow-step p {
+        color: var(--color-mid);
+        padding: 0 1rem;
+    }
+    
+    .threat-stats {
+        padding: 80px 0;
+        background: var(--color-dark);
+        color: white;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+        text-align: center;
+    }
+    
+    .stat-item h3 {
+        font-size: 3rem;
+        color: var(--color-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-item p {
+        color: white;
+        font-weight: 500;
+    }
+    
+    @media (max-width: 768px) {
+        .contact-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .threat-hero h1 {
+            font-size: 2.2rem;
+        }
+        
+        .section-title h2 {
+            font-size: 2rem;
+        }
+        
+        .sources-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .workflow-steps {
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        .workflow-steps::before {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="threat-hero">
+    <div class="container">
+        <h1>Threat Intelligence Solutions</h1>
+        <p>Stay ahead of cyber threats with actionable intelligence. Our threat intelligence services provide deep insights into emerging threats and adversary tactics.</p>
+        <a href="#services" class="btn btn-primary">Explore Threat Intelligence</a>
+    </div>
+</section>
+
+<!-- Threat Stats Section -->
+<section class="threat-stats">
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h3>500M+</h3>
+                <p>Threat Indicators Monitored</p>
+            </div>
+            <div class="stat-item">
+                <h3>15K+</h3>
+                <p>Threat Actors Tracked</p>
+            </div>
+            <div class="stat-item">
+                <h3>24/7</h3>
+                <p>Threat Hunting Operations</p>
+            </div>
+            <div class="stat-item">
+                <h3>98%</h3>
+                <p>Accuracy in Threat Prediction</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Services Section -->
+<section id="services" class="services-section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Our Threat Intelligence Services</h2>
+            <p>Select the threat intelligence services that match your security needs. Our experts provide actionable intelligence to protect your organization.</p>
+        </div>
+        
+        <div class="services-grid" id="services-grid">
+            <!-- Service 1 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Strategic Threat Intelligence</h3>
+                    <p>High-level analysis of threat landscapes, trends, and adversary motivations to inform security strategy and investment.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="strategic" name="service" value="Strategic Threat Intelligence">
+                        <label for="strategic">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 2 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Tactical Threat Intelligence</h3>
+                    <p>Technical details about attack methods, tools, and procedures used by threat actors to improve defensive measures.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="tactical" name="service" value="Tactical Threat Intelligence">
+                        <label for="tactical">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 3 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Operational Threat Intelligence</h3>
+                    <p>Real-time information about specific, imminent attacks targeting your organization or industry.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="operational" name="service" value="Operational Threat Intelligence">
+                        <label for="operational">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 4 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-user-secret"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Threat Actor Profiling</h3>
+                    <p>Detailed analysis of threat actor groups, their capabilities, motivations, and historical attack patterns.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="profiling" name="service" value="Threat Actor Profiling">
+                        <label for="profiling">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 5 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-industry"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Industry-Specific Intelligence</h3>
+                    <p>Tailored threat intelligence focused on your specific industry sector and regulatory requirements.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="industry" name="service" value="Industry-Specific Intelligence">
+                        <label for="industry">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 6 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-code"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Malware Analysis & Reverse Engineering</h3>
+                    <p>Deep analysis of malicious software to understand functionality, capabilities, and indicators of compromise.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="malware" name="service" value="Malware Analysis & Reverse Engineering">
+                        <label for="malware">Select this service</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service 7 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Geopolitical Threat Analysis</h3>
+                    <p>Analysis of how global political events and relationships impact cyber threat landscapes.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="geopolitical" name="service" value="Geopolitical Threat Analysis">
+                        <label for="geopolitical">Select this service</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service 8 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Threat Intelligence Platform</h3>
+                    <p>Deployment and management of threat intelligence platforms for automated ingestion and analysis.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="platform" name="service" value="Threat Intelligence Platform">
+                        <label for="platform">Select this service</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Intelligence Sources Section -->
+<section class="intel-sources">
+    <div class="container">
+        <div class="section-title">
+            <h2>Global Intelligence Sources</h2>
+            <p>We aggregate and analyze threat data from multiple sources to provide comprehensive intelligence coverage.</p>
+        </div>
+        
+        <div class="sources-grid">
+            <div class="source-item">
+                <i class="fas fa-network-wired"></i>
+                <span>Dark Web Monitoring</span>
+            </div>
+            <div class="source-item">
+                <i class="fas fa-exchange-alt"></i>
+                <span>ISAC Feeds</span>
+            </div>
+            <div class="source-item">
+                <i class="fas fa-hashtag"></i>
+                <span>Social Media Intelligence</span>
+            </div>
+            <div class="source-item">
+                <i class="fas fa-database"></i>
+                <span>Open Source Intelligence</span>
+            </div>
+            <div class="source-item">
+                <i class="fas fa-user-friends"></i>
+                <span>Human Intelligence</span>
+            </div>
+            <div class="source-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Technical Intelligence</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Intelligence Workflow Section -->
+<section class="intel-workflow">
+    <div class="container">
+        <div class="section-title">
+            <h2>Our Threat Intelligence Lifecycle</h2>
+            <p>We follow a structured approach to deliver actionable intelligence throughout the entire threat management process.</p>
+        </div>
+        
+        <div class="workflow-steps">
+            <div class="workflow-step">
+                <div class="step-number">1</div>
+                <h4>Requirements & Planning</h4>
+                <p>Define intelligence requirements based on your business context and security objectives.</p>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">2</div>
+                <h4>Collection</h4>
+                <p>Gather threat data from multiple sources including technical, human, and open source intelligence.</p>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">3</div>
+                <h4>Processing & Analysis</h4>
+                <p>Correlate, analyze, and enrich data to identify patterns, trends, and actionable insights.</p>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">4</div>
+                <h4>Production & Dissemination</h4>
+                <p>Create tailored intelligence reports and deliver them through appropriate channels and formats.</p>
+            </div>
+            
+            <div class="workflow-step">
+                <div class="step-number">5</div>
+                <h4>Feedback & Improvement</h4>
+                <p>Continuously refine intelligence processes based on feedback and changing threat landscapes.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Intelligence Features Section -->
+<section class="intel-features">
+    <div class="container">
+        <div class="section-title">
+            <h2>Advanced Threat Intelligence Capabilities</h2>
+            <p>Our threat intelligence platform includes cutting-edge technologies and methodologies to deliver superior insights.</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h4>AI-Powered Analysis</h4>
+                <p>Machine learning algorithms process massive datasets to identify emerging threats and patterns.</p>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h4>Real-Time Alerts</h4>
+                <p>Immediate notification of threats relevant to your organization with actionable mitigation guidance.</p>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-network"></i>
+                </div>
+                <h4>Threat Actor Mapping</h4>
+                <p>Visual mapping of threat actor relationships, infrastructure, and attack campaigns.</p>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <h4>Integration Ready</h4>
+                <p>Seamless integration with your existing security tools and workflows via APIs and standards.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="contact-section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Get Threat Intelligence Consultation</h2>
+            <p>Contact us for a free threat intelligence assessment and customized intelligence strategy for your organization.</p>
+        </div>
+        
+        <div class="contact-container">
+            <div class="contact-info">
+                <h3>Threat Intelligence Experts</h3>
+                <div class="contact-details">
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>123 Security Ave, Cyber City</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <span>+1 (555) 123-4567</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>threatintel@21centurysolutions.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-clock"></i>
+                        <span>24/7 Threat Operations Center</span>
+                    </div>
+                </div>
+                
+                <h3>Why Our Threat Intelligence?</h3>
+                <ul>
+                    <li>Former government and military intelligence analysts</li>
+                    <li>Proprietary collection methods and sources</li>
+                    <li>Industry-specific threat intelligence expertise</li>
+                    <li>Actionable intelligence with clear mitigation steps</li>
+                    <li>Global threat hunting and research teams</li>
+                </ul>
+            </div>
+            
+            <div class="contact-form">
+                <form id="threat-contact-form">
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="company">Company</label>
+                        <input type="text" id="company" name="company" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="industry">Industry</label>
+                        <select id="industry" name="industry" class="form-select">
+                            <option value="">Select your industry</option>
+                            <option value="finance">Financial Services</option>
+                            <option value="healthcare">Healthcare</option>
+                            <option value="government">Government</option>
+                            <option value="energy">Energy & Utilities</option>
+                            <option value="technology">Technology</option>
+                            <option value="retail">Retail</option>
+                            <option value="manufacturing">Manufacturing</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="current-intel">Current Threat Intelligence Solution</label>
+                        <input type="text" id="current-intel" name="current_intel" class="form-control" placeholder="e.g., Recorded Future, CrowdStrike, Mandiant">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="primary-concerns">Primary Threat Concerns</label>
+                        <textarea id="primary-concerns" name="primary_concerns" class="form-control" placeholder="What are your biggest threat concerns? (e.g., ransomware, nation-state attacks, insider threats...)"></textarea>
+                    </div>
+                    
+                    <div class="selected-services" id="selected-services-display" style="display: none;">
+                        <h4>Selected Services:</h4>
+                        <ul id="services-list"></ul>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">Request Threat Assessment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quote Section -->
+<section class="quote-section">
+    <div class="container">
+        <h2>Know Your Enemy Before They Strike</h2>
+        <p>Proactive threat intelligence transforms your security posture from reactive defense to strategic advantage.</p>
+        <a href="#services" class="btn btn-secondary">View Intelligence Services</a>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const serviceCheckboxes = document.querySelectorAll('input[name="service"]');
+        const selectedServicesDisplay = document.getElementById('selected-services-display');
+        const servicesList = document.getElementById('services-list');
+        
+        // Update selected services display
+        function updateSelectedServices() {
+            const selectedServices = Array.from(serviceCheckboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+            
+            if (selectedServices.length > 0) {
+                servicesList.innerHTML = '';
+                selectedServices.forEach(service => {
+                    const li = document.createElement('li');
+                    li.textContent = service;
+                    servicesList.appendChild(li);
+                });
+                selectedServicesDisplay.style.display = 'block';
+            } else {
+                selectedServicesDisplay.style.display = 'none';
+            }
+        }
+        
+        // Add event listeners to all service checkboxes
+        serviceCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedServices);
+        });
+        
+        // Form submission handler
+        const contactForm = document.getElementById('threat-contact-form');
+        contactForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get selected services
+            const selectedServices = Array.from(serviceCheckboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+            
+            // Get industry
+            const industry = document.getElementById('industry').value;
+            const industryText = document.getElementById('industry').options[document.getElementById('industry').selectedIndex].text;
+            
+            // Get current intelligence solution
+            const currentIntel = document.getElementById('current-intel').value;
+            
+            // Get primary concerns
+            const primaryConcerns = document.getElementById('primary-concerns').value;
+            
+            // In a real application, you would send this data to your server
+            // For now, we'll just show a success message
+            let message = 'Thank you for your interest in our threat intelligence services! We will contact you shortly to discuss your requirements.';
+            
+            if (industry) {
+                message += `\n\nWe noted your industry: ${industryText}`;
+            }
+            
+            if (currentIntel) {
+                message += `\n\nCurrent solution: ${currentIntel}`;
+            }
+            
+            if (primaryConcerns) {
+                message += `\n\nYour primary concerns: ${primaryConcerns}`;
+            }
+            
+            if (selectedServices.length > 0) {
+                message += `\n\nSelected services: ${selectedServices.join(', ')}`;
+            }
+            
+            alert(message);
+            
+            // Reset form
+            contactForm.reset();
+            selectedServicesDisplay.style.display = 'none';
+        });
+    });
+</script>
+{% endblock %}

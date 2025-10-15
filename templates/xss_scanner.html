@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}XSS Scanner - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Cross-Site Scripting (XSS) Scanner</h1>
+    <p>Scan websites for Cross-Site Scripting vulnerabilities.</p>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="url">Target URL:</label>
+            <input type="url" id="url" name="url" class="form-control" 
+                   placeholder="https://example.com" required 
+                   value="{{ url if url else '' }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Start Scan</button>
+    </form>
+
+    {% if scan_completed %}
+    <div class="results mt-4">
+        <h3>Scan Results for: {{ url }}</h3>
+        <div class="alert alert-{{ 'danger' if risk_level == 'High' else 'warning' if risk_level == 'Medium' else 'success' }}">
+            <strong>Risk Level: {{ risk_level }}</strong>
+            <br>Found {{ vulnerabilities|length }} vulnerabilities
+        </div>
+
+        {% if vulnerabilities %}
+        <div class="vulnerabilities">
+            <h4>Vulnerabilities Found:</h4>
+            {% for vuln in vulnerabilities %}
+            <div class="card mb-3 border-danger">
+                <div class="card-header bg-danger text-white">
+                    {{ vuln.type }} Vulnerability
+                </div>
+                <div class="card-body">
+                    <p><strong>Parameter:</strong> {{ vuln.parameter }}</p>
+                    <p><strong>Payload:</strong> <code>{{ vuln.payload }}</code></p>
+                    <p><strong>Evidence:</strong> {{ vuln.evidence }}</p>
+                    <p><strong>URL:</strong> <a href="{{ vuln.url }}" target="_blank">{{ vuln.url }}</a></p>
+                    {% if vuln.method %}
+                    <p><strong>Method:</strong> {{ vuln.method }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            No XSS vulnerabilities detected.
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

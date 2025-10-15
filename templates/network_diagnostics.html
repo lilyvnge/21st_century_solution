@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Network Diagnostics - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>Network Diagnostics</h1>
+        <p>Ping and traceroute tools for network troubleshooting and connectivity testing</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="tool-container">
+        <div class="tool-form">
+            <form method="POST">
+                <div class="form-group">
+                    <label for="target">Target IP or Domain:</label>
+                    <input type="text" id="target" name="target" class="form-control" 
+                           placeholder="8.8.8.8 or google.com" required 
+                           value="{{ target if target else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label>Diagnostic Type:</label>
+                    <div class="form-options">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="diagnostic_type" value="ping" id="ping_only" checked>
+                            <label class="form-check-label" for="ping_only">
+                                Ping Only
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="diagnostic_type" value="traceroute" id="traceroute_only">
+                            <label class="form-check-label" for="traceroute_only">
+                                Traceroute Only
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="diagnostic_type" value="both" id="both_tests">
+                            <label class="form-check-label" for="both_tests">
+                                Both Ping & Traceroute
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Run Diagnostics</button>
+            </form>
+        </div>
+
+        {% if scan_completed %}
+        <div class="results-section">
+            <h3>Diagnostic Results for: {{ target }}</h3>
+
+            {% if diagnostic_type in ['ping', 'both'] and results.ping %}
+            <div class="result-card">
+                <h4>
+                    <i class="fas fa-broadcast-tower"></i>
+                    Ping Results
+                    <span class="badge badge-{{ 'success' if results.ping.success else 'danger' }} float-right">
+                        {{ 'Reachable' if results.ping.success else 'Unreachable' }}
+                    </span>
+                </h4>
+                {% if results.ping.error %}
+                <div class="alert alert-danger">
+                    <strong>Error:</strong> {{ results.ping.error }}
+                </div>
+                {% endif %}
+                <pre class="output-box"><code>{{ results.ping.output }}</code></pre>
+            </div>
+            {% endif %}
+
+            {% if diagnostic_type in ['traceroute', 'both'] and results.traceroute %}
+            <div class="result-card">
+                <h4>
+                    <i class="fas fa-route"></i>
+                    Traceroute Results
+                    <span class="badge badge-{{ 'success' if results.traceroute.success else 'danger' }} float-right">
+                        {{ 'Completed' if results.traceroute.success else 'Failed' }}
+                    </span>
+                </h4>
+                {% if results.traceroute.error %}
+                <div class="alert alert-danger">
+                    <strong>Error:</strong> {{ results.traceroute.error }}
+                </div>
+                {% endif %}
+                <pre class="output-box"><code>{{ results.traceroute.output }}</code></pre>
+            </div>
+            {% endif %}
+
+            <div class="interpretation-guide">
+                <h5>How to Interpret Results:</h5>
+                <div class="guide-grid">
+                    <div class="guide-item">
+                        <h6><i class="fas fa-check-circle text-success"></i> Successful Ping</h6>
+                        <p>Target is reachable and responding to ICMP requests.</p>
+                    </div>
+                    <div class="guide-item">
+                        <h6><i class="fas fa-times-circle text-danger"></i> Failed Ping</h6>
+                        <p>Target may be offline, blocking ICMP, or network issues exist.</p>
+                    </div>
+                    <div class="guide-item">
+                        <h6><i class="fas fa-route text-info"></i> Traceroute</h6>
+                        <p>Shows the network path and latency to the target.</p>
+                    </div>
+                    <div class="guide-item">
+                        <h6><i class="fas fa-exclamation-triangle text-warning"></i> Timeouts</h6>
+                        <p>Intermediate routers may be blocking traceroute requests.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

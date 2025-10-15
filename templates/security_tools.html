@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block title %}Security Tools - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>Security Tools</h1>
+        <p>Comprehensive cybersecurity tools for vulnerability assessment and threat detection</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="tools-grid">
+        <!-- Network Security Tools -->
+        <div class="tool-category">
+            <h2><i class="fas fa-shield-alt"></i> Vulnerability Scanners</h2>
+            <div class="tools-row">
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h3>SQL Injection Scanner</h3>
+                    <p>Detect SQL injection vulnerabilities in web applications by testing URL parameters and forms.</p>
+                    <a href="{{ url_for('sqli_scanner') }}" class="btn btn-primary">Use Tool</a>
+                </div>
+
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3>XSS Scanner</h3>
+                    <p>Identify Cross-Site Scripting vulnerabilities that could allow attacker script execution.</p>
+                    <a href="{{ url_for('xss_scanner') }}" class="btn btn-primary">Use Tool</a>
+                </div>
+
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <h3>CSRF Scanner</h3>
+                    <p>Check for Cross-Site Request Forgery vulnerabilities in web forms.</p>
+                    <a href="{{ url_for('csrf_scanner') }}" class="btn btn-primary">Use Tool</a>
+                </div>
+
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i class="fas fa-search-plus"></i>
+                    </div>
+                    <h3>Comprehensive Scanner</h3>
+                    <p>Run multiple vulnerability scans simultaneously for complete security assessment.</p>
+                    <a href="{{ url_for('comprehensive_scan') }}" class="btn btn-primary">Use Tool</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Existing Security Tools -->
+        <div class="tool-category">
+            <h2><i class="fas fa-globe"></i> Web Security Tools</h2>
+            <div class="tools-row">
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i class="fas fa-header"></i>
+                    </div>
+                    <h3>Security Headers Scanner</h3>
+                    <p>Analyze HTTP security headers to identify missing security protections.</p>
+                    <a href="{{ url_for('security_headers_tool') }}" class="btn btn-primary">Use Tool</a>
+                </div>
+
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <h3>DNS Lookup Tool</h3>
+                    <p>Perform comprehensive DNS analysis and WHOIS lookups for domain intelligence.</p>
+                    <a href="{{ url_for('dns_lookup_tool') }}" class="btn btn-primary">Use Tool</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cryptography Tools -->
+        <div class="tool-category">
+            <h2><i class="fas fa-lock"></i> Cryptography Tools</h2>
+            <div class="tools-row">
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <h3>Password Checker</h3>
+                    <p>Evaluate password strength and check against common password breaches.</p>
+                    <a href="{{ url_for('password_checker_tool') }}" class="btn btn-primary">Use Tool</a>
+                </div>
+
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i class="fas fa-hashtag"></i>
+                    </div>
+                    <h3>Hash Generator</h3>
+                    <p>Generate various cryptographic hashes for strings and passwords.</p>
+                    <a href="{{ url_for('hash_generator_tool') }}" class="btn btn-primary">Use Tool</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Security Tools -->
+        
+        <div class="tool-category">
+            <h2><i class="fas fa-network-wired"></i> Network Security Tools</h2>
+                <div class="tools-row">
+                    <div class="tool-card">
+                        <div class="tool-icon">
+                            <i class="fas fa-plug"></i>
+                        </div>
+                        <h3>Port Scanner</h3>
+                        <p>Scan for open ports on network hosts and identify running services for security assessment.</p>
+                        <a href="{{ url_for('port_scanner') }}" class="btn btn-primary">Use Tool</a>
+                    </div>
+
+                    <div class="tool-card">
+                        <div class="tool-icon">
+                            <i class="fas fa-signal"></i>
+                        </div>
+                        <h3>Network Diagnostics</h3>
+                        <p>Ping and traceroute tools for network troubleshooting and connectivity testing.</p>
+                        <a href="{{ url_for('network_diagnostics') }}" class="btn btn-primary">Use Tool</a>
+                    </div>
+                </div>
+        </div>
+
+        <!-- Scan History -->
+        {% if session.get('user_id') %}
+        <div class="tool-category">
+            <h2><i class="fas fa-history"></i> Your Scan History</h2>
+            <div class="scan-history">
+                <p>View and manage your previous security scans and results.</p>
+                <a href="{{ url_for('scan_history') }}" class="btn btn-secondary">View Scan History</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Features Section -->
+    <div class="features-section">
+        <h2>Why Use Our Security Tools?</h2>
+        <div class="features-grid">
+            <div class="feature">
+                <i class="fas fa-bolt"></i>
+                <h3>Fast & Accurate</h3>
+                <p>Quick scanning with accurate vulnerability detection using advanced algorithms.</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Safe & Secure</h3>
+                <p>All scans are performed safely without causing harm to target systems.</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-chart-line"></i>
+                <h3>Detailed Reports</h3>
+                <p>Comprehensive reports with risk assessments and remediation guidance.</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-database"></i>
+                <h3>History Tracking</h3>
+                <p>All your scans are logged for future reference and compliance.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    color: white;
+    padding: 4rem 0;
+    text-align: center;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.page-header p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin: 1rem 0 0 0;
+}
+
+.tools-grid {
+    margin: 3rem 0;
+}
+
+.tool-category {
+    margin-bottom: 3rem;
+}
+
+.tool-category h2 {
+    color: var(--color-dark);
+    border-bottom: 2px solid var(--color-light);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.tool-category h2 i {
+    margin-right: 0.5rem;
+    color: var(--color-primary);
+}
+
+.tools-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.tool-card {
+    background: white;
+    border: 1px solid var(--color-light);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.tool-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.tool-icon {
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+}
+
+.tool-card h3 {
+    color: var(--color-dark);
+    margin: 0.5rem 0;
+    font-size: 1.2rem;
+}
+
+.tool-card p {
+    color: var(--color-mid);
+    flex-grow: 1;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.tool-card .btn {
+    margin-top: auto;
+    width: 100%;
+}
+
+.scan-history {
+    background: var(--color-light);
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.features-section {
+    margin: 4rem 0;
+    padding: 3rem 0;
+    background: var(--color-light);
+    border-radius: 12px;
+}
+
+.features-section h2 {
+    text-align: center;
+    color: var(--color-dark);
+    margin-bottom: 2rem;
+    font-size: 2rem;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.feature {
+    text-align: center;
+    padding: 1rem;
+}
+
+.feature i {
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+}
+
+.feature h3 {
+    color: var(--color-dark);
+    margin: 0.5rem 0;
+}
+
+.feature p {
+    color: var(--color-mid);
+    line-height: 1.5;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+    border: 1px solid transparent;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+@media (max-width: 768px) {
+    .tools-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .page-header {
+        padding: 2rem 0;
+    }
+    
+    .page-header h1 {
+        font-size: 2rem;
+    }
+}
+</style>
+{% endblock %}

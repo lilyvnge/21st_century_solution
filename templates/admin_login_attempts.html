@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Admin Login Attempts - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Admin <span class="text-accent">Login Attempts</span></h2>
+            <p>Review recent login attempts by admin users.</p>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Admin User</th>
+                        <th>IP Address</th>
+                        <th>Timestamp</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attempt in login_attempts %}
+                    <tr>
+                        <td>{{ attempt.user_name }}</td>
+                        <td>{{ attempt.ip_address }}</td>
+                        <td>{{ attempt.timestamp }}</td>
+                        <td>{{ attempt.status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-center mt-lg">
+            <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

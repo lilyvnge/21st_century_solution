@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>All Scan Results</h2>
+<table border="1" cellpadding="6">
+    <tr>
+        <th>Date</th>
+        <th>User</th>
+        <th>Email</th>
+        <th>Tool</th>
+        <th>Target</th>
+        <th>Risk Level</th>
+        <th>Results</th>
+    </tr>
+    {% for scan in scans %}
+    <tr>
+        <td>{{ scan.created_at }}</td>
+        <td>{{ scan.name }}</td>
+        <td>{{ scan.email }}</td>
+        <td>{{ scan.tool_type }}</td>
+        <td>{{ scan.target_url }}</td>
+        <td>{{ scan.risk_level }}</td>
+        <td>{{ scan.results }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% if scans|length == 0 %}
+    <p>No scan results found.</p>
+{% endif %}
+{% endblock %}

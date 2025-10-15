@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>21STCENTURY SOLUTIONS - Cybersecurity Experts</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-flex">
+                <div class="logo">21st<span>CENTURY</span>SOLUTIONS</div>
+                <nav>
+                    <a href="/">Home</a>
+                    <a href="/cybersecurity">Services</a>
+                    <a href="/security_tools">Online Tools</a>
+                    <a href="/other_solutions">Solutions</a>
+                    <a href="/contact">Contact</a>
+                </nav>
+                <button class="btn btn-login" onclick="window.location.href='/login'">Client Login</button>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Advanced Cyber Security for the 21<sup>st</sup>CENTURY</h1>
+                <p>21STCENTURY SOLUTIONS provides enterprise-grade protection against evolving cyber threats. Safeguard your data, systems, and reputation with our cutting-edge security solutions.</p>
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <a href="/cybersecurity" class="btn btn-primary">Explore Our Solutions</a>
+                    <a href="/contact" class="btn btn-secondary">Schedule Consultation</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="section-title">
+                <h2>Our <span class="text-accent">Services</span></h2>
+                <p>Comprehensive cybersecurity solutions tailored to your organization's needs</p>
+            </div>
+
+            <div class="services-grid">
+                <div class="card service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3><a href="/network_security">Network Security</a></h3>
+                    <p>Protect your infrastructure from unauthorized access and cyber attacks with our advanced network security solutions.</p>
+                </div>
+
+                <div class="card service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <h3><a href="cloud_security">Cloud Security</a></h3>
+                    <p>Secure your cloud environments and data with comprehensive protection strategies tailored to your cloud architecture.</p>
+                </div>
+
+                <div class="card service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-laptop"></i>
+                    </div>
+                    <h3><a href="endpoint_protection">Endpoint Protection</a></h3>
+                    <p>Defend against malware, ransomware, and other threats targeting devices across your organization.</p>
+                </div>
+            </div>
+
+            <div class="text-center mt-lg">
+                <a href="/cybersecurity" class="btn btn-primary">View All Services</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" style="background-color: var(--color-darker);">
+        <div class="container">
+            <div class="section-title">
+                <h2>Why Choose <span class="text-accent">Us</span></h2>
+                <p>Experience the difference of working with cybersecurity experts</p>
+            </div>
+
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                <div class="card">
+                    <h3>24/7 Monitoring</h3>
+                    <p>Our security operations center works around the clock to detect and respond to threats in real-time.</p>
+                </div>
+                
+                <div class="card">
+                    <h3>Industry Experts</h3>
+                    <p>Our team consists of certified professionals with decades of combined experience in cybersecurity.</p>
+                </div>
+                
+                <div class="card">
+                    <h3>Custom Solutions</h3>
+                    <p>We don't believe in one-size-fits-all approaches. Every solution is tailored to your specific needs.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-logo">21st<span>CENTURY</span>SOLUTIONS</div>
+                    <p>Providing cutting-edge cybersecurity solutions to protect businesses in the digital age.</p>
+                </div>
+                
+                <div class="footer-links">
+                    <h3>Services</h3>
+                    <ul>
+                        <li><a href="/network_security">Network Security</a></li>
+                        <li><a href="/cloud_security">Cloud Security</a></li>
+                        <li><a href="/endpoint_protection">Endpoint Protection</a></li>
+                        <li><a href="/threat_intelligence">Threat Intelligence</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-links">
+                    <h3>Company</h3>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Testimonials</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-links">
+                    <h3>Contact</h3>
+                    <ul>
+                        <li>Email: info@21centurysolutions.com</li>
+                        <li>Phone: +254 717 658 509</li>
+                        <li>Address: Nairobi, KENYA</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 21STCENTURY SOLUTIONS. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

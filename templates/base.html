@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}21STCENTURY SOLUTIONS{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-flex">
+                <div class="logo">21st<span>CENTURY</span>SOLUTIONS</div>
+                <nav>
+                    <a href="/" {% if request.path == '/' %}class="active"{% endif %}>Home</a>
+                    <a href="/cybersecurity" {% if request.path == '/cybersecurity' %}class="active"{% endif %}>Services</a>
+                    <a href="/security_tools" {% if request.path.startswith('/tools') or request.path == '/security_tools' %}class="active"{% endif %}>Online Tools</a>
+                    <a href="/other_solutions" {% if request.path == '/other_solutions' %}class="active"{% endif %}>Solutions</a>
+                    <a href="/contact" {% if request.path == '/contact' %}class="active"{% endif %}>Contact</a>
+                    {% if session.get('user_role') == 'admin' %}
+                        <a href="/admin/dashboard" {% if request.path.startswith('/admin') %}class="active"{% endif %}>Admin</a>
+                    {% endif %}
+                </nav>
+                <div>
+                    {% if session.get('user_id') %}
+                        <span style="color: var(--color-mid); margin-right: 1rem;">Welcome, {{ session.user_name }}</span>
+                        <a href="/profile" class="btn btn-secondary" style="margin-right: 0.5rem;">Profile</a>
+                        <a href="/logout" class="btn btn-login">Logout</a>
+                    {% else %}
+                        <button class="btn btn-login" onclick="window.location.href='/login'">Client Login</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-logo">21st<span>CENTURY</span>SOLUTIONS</div>
+                    <p>Providing cutting-edge cybersecurity solutions to protect businesses in the digital age.</p>
+                </div>
+                
+                <div class="footer-links">
+                    <h3>Services</h3>
+                    <ul>
+                        <li><a href="/network_security">Network Security</a></li>
+                        <li><a href="/cloud_security">Cloud Security</a></li>
+                        <li><a href="/endpoint_protection">Endpoint Protection</a></li>
+                        <li><a href="/threat_intelligence">Threat Intelligence</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-links">
+                    <h3>Company</h3>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Testimonials</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-links">
+                    <h3>Contact</h3>
+                    <ul>
+                        <li>Email: info@21centurysolutions.com</li>
+                        <li>Phone: +254 717 658 509</li>
+                        <li>Address: Nairobi, KENYA</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 21STCENTURY SOLUTIONS. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

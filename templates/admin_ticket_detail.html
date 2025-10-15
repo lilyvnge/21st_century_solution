@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Ticket Details - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Ticket <span class="text-accent">Details</span></h2>
+            <p>Review and manage the selected support ticket.</p>
+        </div>
+        <div class="ticket-detail">
+            <p><strong>Ticket ID:</strong> {{ ticket.id }}</p>
+            <p><strong>Client:</strong> {{ ticket.client_name }}</p>
+            <p><strong>Subject:</strong> {{ ticket.subject }}</p>
+            <p><strong>Status:</strong> {{ ticket.status }}</p>
+            <p><strong>Created:</strong> {{ ticket.created_at }}</p>
+            <p><strong>Description:</strong></p>
+            <p>{{ ticket.description }}</p>
+        </div>
+        <div class="ticket-actions">
+            <form method="POST" action="/admin/ticket/{{ ticket.id }}/update_status">
+                <label for="status">Update Status:</label>
+                <select id="status" name="status">
+                    <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>Open</option>
+                    <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>Closed</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Update</button>
+            </form>
+            <a href="/admin/tickets" class="btn btn-secondary">Back to Tickets</a>
+        </div>
+        {% if ticket.comments %}
+        <div class="ticket-comments mt-lg">
+            <h3>Comments</h3>
+            <ul>
+                {% for comment in ticket.comments %}
+                <li>
+                    <strong>{{ comment.author }}</strong> ({{ comment.timestamp }}):<br>
+                    {{ comment.content }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        <div class="add-comment mt-lg">
+            <form method="POST" action="/admin/ticket/{{ ticket.id }}/add_comment">
+                <label for="comment">Add Comment:</label>
+                <textarea id="comment" name="comment" rows="3" required></textarea>
+                <button type="submit" class="btn btn-primary">Add Comment</button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

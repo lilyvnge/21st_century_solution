@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Security Headers Analyzer - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .risk-high { color: #ff4444; }
+    .risk-medium { color: #ffaa00; }
+    .risk-low { color: #00cc88; }
+    .risk-info { color: #0066ff; }
+    
+    .header-result {
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: var(--radius-sm);
+        background: var(--color-dark-accent);
+    }
+    
+    .header-present { border-left: 4px solid #00cc88; }
+    .header-missing { border-left: 4px solid #ff4444; }
+    
+    .results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    code {
+        background: var(--color-darker);
+        padding: 0.2rem 0.4rem;
+        border-radius: 3px;
+        font-family: monospace;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Security Headers <span class="text-accent">Analyzer</span></h2>
+            <p>Check HTTP security headers for any website to identify potential vulnerabilities</p>
+        </div>
+
+        <div class="card">
+            <form method="POST" action="/tools/security_headers">
+                <div class="form-group">
+                    <label for="url" class="form-label">Website URL</label>
+                    <input type="url" class="form-input" id="url" name="url" 
+                           placeholder="https://example.com" value="{{ url or '' }}" required>
+                    <small style="color: var(--color-mid);">Enter the full URL including http:// or https://</small>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-shield-alt"></i> Analyze Security Headers
+                </button>
+            </form>
+        </div>
+
+        {% if headers %}
+        <div class="card mt-lg">
+            <h3>Security Analysis Results for <span class="text-accent">{{ url }}</span></h3>
+            
+            <div class="text-center mb-md">
+                <h4>Overall Risk Level: 
+                    <span class="risk-{{ overall_risk }}">{{ overall_risk|upper }}</span>
+                </h4>
+            </div>
+
+            <div class="results-grid">
+                {% for header_name, header_data in headers.items() %}
+                <div class="header-result {% if header_data.present %}header-present{% else %}header-missing{% endif %}">
+                    <div style="display: flex; justify-content: between; align-items: center;">
+                        <h4>{{ header_name }}</h4>
+                        <span class="risk-{{ header_data.risk }}">
+                            {% if header_data.present %}
+                                <i class="fas fa-check-circle"></i> PRESENT
+                            {% else %}
+                                <i class="fas fa-times-circle"></i> MISSING
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <p><strong>Value:</strong> <code>{{ header_data.value }}</code></p>
+                    <p><strong>Risk:</strong> <span class="risk-{{ header_data.risk }}">{{ header_data.risk|upper }}</span></p>
+                    
+                    {% if not header_data.present %}
+                    <div style="background: var(--color-darker); padding: 0.5rem; border-radius: 3px; margin-top: 0.5rem;">
+                        <small><strong>Recommendation:</strong> 
+                        {% if header_name == 'Content-Security-Policy' %}
+                            Implement CSP to prevent XSS attacks
+                        {% elif header_name == 'Strict-Transport-Security' %}
+                            Enable HSTS to enforce HTTPS
+                        {% elif header_name == 'X-Frame-Options' %}
+                            Set to DENY or SAMEORIGIN to prevent clickjacking
+                        {% elif header_name == 'X-Content-Type-Options' %}
+                            Set to nosniff to prevent MIME type sniffing
+                        {% elif header_name == 'Referrer-Policy' %}
+                            Configure referrer policy to control referrer information
+                        {% endif %}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-lg">
+                <h4>All HTTP Headers Found</h4>
+                <div style="background: var(--color-darker); padding: 1rem; border-radius: var(--radius-sm); max-height: 300px; overflow-y: auto;">
+                    <pre style="margin: 0; color: var(--color-mid);"><code>{% for key, value in all_headers.items() %}{{ key }}: {{ value }}
+{% endfor %}</code></pre>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card mt-lg">
+            <h3>About Security Headers</h3>
+            <p>HTTP security headers provide an additional layer of security by helping to mitigate attacks and security vulnerabilities. They instruct browsers how to behave when handling your site's content.</p>
+            
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div>
+                    <h4>Critical Headers</h4>
+                    <ul>
+                        <li>Content-Security-Policy</li>
+                        <li>Strict-Transport-Security</li>
+                        <li>X-Frame-Options</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Important Headers</h4>
+                    <ul>
+                        <li>X-Content-Type-Options</li>
+                        <li>Referrer-Policy</li>
+                        <li>X-XSS-Protection</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

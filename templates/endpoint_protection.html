@@ -1,0 +1,761 @@
+{% extends "base.html" %}
+
+{% block title %}Endpoint Protection Services - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .endpoint-hero {
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                    url("{{ url_for('static', filename='endpoint-protection-bg.jpg') }}");
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 100px 0;
+        text-align: center;
+    }
+    
+    .endpoint-hero h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+    
+    .endpoint-hero p {
+        font-size: 1.2rem;
+        max-width: 800px;
+        margin: 0 auto 2rem;
+    }
+    
+    .services-section {
+        padding: 80px 0;
+        background-color: var(--color-light);
+    }
+    
+    .section-title {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+    
+    .section-title h2 {
+        font-size: 2.5rem;
+        color: var(--color-dark);
+        margin-bottom: 1rem;
+    }
+    
+    .section-title p {
+        color: var(--color-mid);
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+    
+    .service-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .service-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .service-icon {
+        background: var(--color-primary);
+        color: white;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+    }
+    
+    .service-content {
+        padding: 1.5rem;
+    }
+    
+    .service-content h3 {
+        margin-bottom: 1rem;
+        color: var(--color-dark);
+    }
+    
+    .service-content p {
+        color: var(--color-mid);
+        margin-bottom: 1.5rem;
+    }
+    
+    .service-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .service-checkbox input {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .service-checkbox label {
+        font-weight: 500;
+        cursor: pointer;
+    }
+    
+    .platform-support {
+        background: white;
+        padding: 3rem 0;
+        text-align: center;
+    }
+    
+    .platforms-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+    
+    .platform-logo {
+        background: var(--color-light);
+        padding: 1.5rem;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100px;
+        transition: transform 0.3s ease;
+    }
+    
+    .platform-logo:hover {
+        transform: scale(1.05);
+    }
+    
+    .platform-logo i {
+        font-size: 3rem;
+        color: var(--color-dark);
+    }
+    
+    .contact-section {
+        padding: 80px 0;
+        background: white;
+    }
+    
+    .contact-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+    }
+    
+    .contact-info h3 {
+        margin-bottom: 1.5rem;
+        color: var(--color-dark);
+    }
+    
+    .contact-details {
+        margin-bottom: 2rem;
+    }
+    
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .contact-item i {
+        color: var(--color-primary);
+        font-size: 1.2rem;
+        width: 20px;
+    }
+    
+    .contact-form {
+        background: var(--color-light);
+        padding: 2rem;
+        border-radius: 10px;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--color-dark);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-family: 'Open Sans', sans-serif;
+        font-size: 1rem;
+    }
+    
+    textarea.form-control {
+        min-height: 120px;
+        resize: vertical;
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-family: 'Open Sans', sans-serif;
+        font-size: 1rem;
+        background: white;
+    }
+    
+    .selected-services {
+        background: white;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-top: 1rem;
+        border-left: 4px solid var(--color-primary);
+    }
+    
+    .selected-services h4 {
+        margin-bottom: 0.5rem;
+        color: var(--color-dark);
+    }
+    
+    .selected-services ul {
+        padding-left: 1.5rem;
+    }
+    
+    .selected-services li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .quote-section {
+        padding: 80px 0;
+        background: var(--color-primary);
+        color: white;
+        text-align: center;
+    }
+    
+    .quote-section h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .quote-section p {
+        font-size: 1.2rem;
+        max-width: 700px;
+        margin: 0 auto 2rem;
+    }
+    
+    .protection-features {
+        padding: 80px 0;
+        background: var(--color-light);
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin-top: 3rem;
+    }
+    
+    .feature-item {
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .feature-icon {
+        background: var(--color-primary);
+        color: white;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 1.5rem;
+    }
+    
+    .feature-item h4 {
+        margin-bottom: 1rem;
+        color: var(--color-dark);
+    }
+    
+    .feature-item p {
+        color: var(--color-mid);
+    }
+    
+    .stats-section {
+        padding: 80px 0;
+        background: white;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+        text-align: center;
+    }
+    
+    .stat-item h3 {
+        font-size: 3rem;
+        color: var(--color-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-item p {
+        color: var(--color-dark);
+        font-weight: 500;
+    }
+    
+    @media (max-width: 768px) {
+        .contact-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .endpoint-hero h1 {
+            font-size: 2.2rem;
+        }
+        
+        .section-title h2 {
+            font-size: 2rem;
+        }
+        
+        .platforms-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="endpoint-hero">
+    <div class="container">
+        <h1>Endpoint Protection Solutions</h1>
+        <p>Secure every device in your organization with advanced endpoint protection. From laptops to mobile devices, we provide comprehensive security against modern threats.</p>
+        <a href="#services" class="btn btn-primary">Explore Endpoint Protection</a>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section">
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h3>99.9%</h3>
+                <p>Threat Detection Rate</p>
+            </div>
+            <div class="stat-item">
+                <h3>24/7</h3>
+                <p>Endpoint Monitoring</p>
+            </div>
+            <div class="stat-item">
+                <h3>50ms</h3>
+                <p>Average Response Time</p>
+            </div>
+            <div class="stat-item">
+                <h3>10M+</h3>
+                <p>Endpoints Protected</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Services Section -->
+<section id="services" class="services-section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Our Endpoint Protection Services</h2>
+            <p>Select the endpoint security services that match your organization's needs. Our solutions protect all devices across your enterprise.</p>
+        </div>
+        
+        <div class="services-grid" id="services-grid">
+            <!-- Service 1 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-desktop"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Next-Gen Antivirus</h3>
+                    <p>Advanced antivirus protection using behavioral analysis and machine learning to detect and block sophisticated threats.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="antivirus" name="service" value="Next-Gen Antivirus">
+                        <label for="antivirus">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 2 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-shield-virus"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Endpoint Detection & Response (EDR)</h3>
+                    <p>Continuous monitoring and response capabilities to detect and investigate suspicious activities on endpoints.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="edr" name="service" value="Endpoint Detection & Response (EDR)">
+                        <label for="edr">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 3 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Mobile Device Management</h3>
+                    <p>Secure and manage mobile devices with policies, encryption, and remote wipe capabilities.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="mdm" name="service" value="Mobile Device Management">
+                        <label for="mdm">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 4 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Data Loss Prevention</h3>
+                    <p>Prevent sensitive data from leaving endpoints through monitoring, blocking, and encryption.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="dlp" name="service" value="Data Loss Prevention">
+                        <label for="dlp">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 5 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-usb"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Device Control</h3>
+                    <p>Manage and control peripheral devices like USB drives, Bluetooth, and other removable media.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="device-control" name="service" value="Device Control">
+                        <label for="device-control">Select this service</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Service 6 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Application Control</h3>
+                    <p>Whitelist or blacklist applications to prevent unauthorized software from running on endpoints.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="app-control" name="service" value="Application Control">
+                        <label for="app-control">Select this service</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service 7 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-patch-check"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Patch Management</h3>
+                    <p>Automated patch deployment and vulnerability management for operating systems and applications.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="patch" name="service" value="Patch Management">
+                        <label for="patch">Select this service</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service 8 -->
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-broadcast-tower"></i>
+                </div>
+                <div class="service-content">
+                    <h3>Endpoint Encryption</h3>
+                    <p>Full disk encryption and file-level encryption to protect data at rest on all endpoints.</p>
+                    <div class="service-checkbox">
+                        <input type="checkbox" id="encryption" name="service" value="Endpoint Encryption">
+                        <label for="encryption">Select this service</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Platform Support Section -->
+<section class="platform-support">
+    <div class="container">
+        <div class="section-title">
+            <h2>Supported Platforms & Devices</h2>
+            <p>We provide comprehensive endpoint protection for all major operating systems and device types.</p>
+        </div>
+        
+        <div class="platforms-grid">
+            <div class="platform-logo">
+                <i class="fab fa-windows"></i>
+            </div>
+            <div class="platform-logo">
+                <i class="fab fa-apple"></i>
+            </div>
+            <div class="platform-logo">
+                <i class="fab fa-linux"></i>
+            </div>
+            <div class="platform-logo">
+                <i class="fab fa-android"></i>
+            </div>
+            <div class="platform-logo">
+                <i class="fab fa-apple"></i>
+            </div>
+            <div class="platform-logo">
+                <i class="fas fa-server"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Protection Features Section -->
+<section class="protection-features">
+    <div class="container">
+        <div class="section-title">
+            <h2>Advanced Endpoint Protection Features</h2>
+            <p>Our endpoint protection platform includes cutting-edge security technologies to defend against modern threats.</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h4>AI-Powered Threat Detection</h4>
+                <p>Machine learning algorithms analyze behavior patterns to detect zero-day attacks and advanced threats.</p>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <h4>Cloud-Based Management</h4>
+                <p>Centralized console for managing all endpoints with real-time visibility and control.</p>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h4>Real-Time Response</h4>
+                <p>Automated response actions to contain threats and minimize impact on business operations.</p>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h4>Threat Intelligence</h4>
+                <p>Global threat intelligence feeds provide context and enhance detection capabilities.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="contact-section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Get Endpoint Protection Consultation</h2>
+            <p>Contact us for a free endpoint security assessment and customized protection strategy for your organization.</p>
+        </div>
+        
+        <div class="contact-container">
+            <div class="contact-info">
+                <h3>Endpoint Security Experts</h3>
+                <div class="contact-details">
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>123 Security Ave, Cyber City</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <span>+1 (555) 123-4567</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>endpoint@21centurysolutions.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-clock"></i>
+                        <span>24/7 Security Operations Center</span>
+                    </div>
+                </div>
+                
+                <h3>Why Our Endpoint Protection?</h3>
+                <ul>
+                    <li>Unified protection across all endpoints</li>
+                    <li>Lightweight agent with minimal performance impact</li>
+                    <li>Automated threat hunting and response</li>
+                    <li>Compliance with industry regulations</li>
+                    <li>Expert security team for 24/7 monitoring</li>
+                </ul>
+            </div>
+            
+            <div class="contact-form">
+                <form id="endpoint-contact-form">
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="company">Company</label>
+                        <input type="text" id="company" name="company" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="endpoint-count">Number of Endpoints</label>
+                        <select id="endpoint-count" name="endpoint_count" class="form-select">
+                            <option value="">Select endpoint count</option>
+                            <option value="1-50">1-50 endpoints</option>
+                            <option value="51-250">51-250 endpoints</option>
+                            <option value="251-1000">251-1,000 endpoints</option>
+                            <option value="1001-5000">1,001-5,000 endpoints</option>
+                            <option value="5000+">5,000+ endpoints</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="current-solution">Current Endpoint Solution</label>
+                        <input type="text" id="current-solution" name="current_solution" class="form-control" placeholder="e.g., CrowdStrike, SentinelOne, Microsoft Defender">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="message">Your Endpoint Security Requirements</label>
+                        <textarea id="message" name="message" class="form-control" placeholder="Tell us about your endpoint environment and security challenges..."></textarea>
+                    </div>
+                    
+                    <div class="selected-services" id="selected-services-display" style="display: none;">
+                        <h4>Selected Services:</h4>
+                        <ul id="services-list"></ul>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">Request Endpoint Assessment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quote Section -->
+<section class="quote-section">
+    <div class="container">
+        <h2>Protect Your Digital Perimeter</h2>
+        <p>Endpoints are the frontline of your defense. Secure every device with our advanced endpoint protection platform.</p>
+        <a href="#services" class="btn btn-secondary">View Endpoint Services</a>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const serviceCheckboxes = document.querySelectorAll('input[name="service"]');
+        const selectedServicesDisplay = document.getElementById('selected-services-display');
+        const servicesList = document.getElementById('services-list');
+        
+        // Update selected services display
+        function updateSelectedServices() {
+            const selectedServices = Array.from(serviceCheckboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+            
+            if (selectedServices.length > 0) {
+                servicesList.innerHTML = '';
+                selectedServices.forEach(service => {
+                    const li = document.createElement('li');
+                    li.textContent = service;
+                    servicesList.appendChild(li);
+                });
+                selectedServicesDisplay.style.display = 'block';
+            } else {
+                selectedServicesDisplay.style.display = 'none';
+            }
+        }
+        
+        // Add event listeners to all service checkboxes
+        serviceCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedServices);
+        });
+        
+        // Form submission handler
+        const contactForm = document.getElementById('endpoint-contact-form');
+        contactForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get selected services
+            const selectedServices = Array.from(serviceCheckboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+            
+            // Get endpoint count
+            const endpointCount = document.getElementById('endpoint-count').value;
+            const countText = document.getElementById('endpoint-count').options[document.getElementById('endpoint-count').selectedIndex].text;
+            
+            // Get current solution
+            const currentSolution = document.getElementById('current-solution').value;
+            
+            // In a real application, you would send this data to your server
+            // For now, we'll just show a success message
+            let message = 'Thank you for your interest in our endpoint protection services! We will contact you shortly to discuss your requirements.';
+            
+            if (endpointCount) {
+                message += `\n\nWe noted your endpoint count: ${countText}`;
+            }
+            
+            if (currentSolution) {
+                message += `\n\nCurrent solution: ${currentSolution}`;
+            }
+            
+            if (selectedServices.length > 0) {
+                message += `\n\nSelected services: ${selectedServices.join(', ')}`;
+            }
+            
+            alert(message);
+            
+            // Reset form
+            contactForm.reset();
+            selectedServicesDisplay.style.display = 'none';
+        });
+    });
+</script>
+{% endblock %}

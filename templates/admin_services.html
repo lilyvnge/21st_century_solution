@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Admin Services - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Admin <span class="text-accent">Services</span></h2>
+            <p>Manage and review all available services.</p>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service Name</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for service in services %}
+                    <tr>
+                        <td>{{ service.name }}</td>
+                        <td>{{ service.description }}</td>
+                        <td>{{ service.status }}</td>
+                        <td>
+                            <a href="/admin/services/edit/{{ service.id }}" class="btn btn-secondary btn-sm">Edit</a>
+                            <a href="/admin/services/delete/{{ service.id }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this service?');">Delete</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-center mt-lg">
+            <a href="/admin/services/add" class="btn btn-primary">Add New Service</a>
+            <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

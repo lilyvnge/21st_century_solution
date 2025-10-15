@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Client Portal - 21STCENTURY SOLUTIONS{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Welcome, <span class="text-accent">{{ session.user_name }}</span></h2>
+            <p>Access your services, tickets, and account information.</p>
+        </div>
+        <div class="portal-grid">
+            <div class="portal-card">
+                <h3>My Services</h3>
+                <ul>
+                    {% for service in user_services %}
+                    <li>{{ service.name }} - {{ service.status }}</li>
+                    {% else %}
+                    <li>No services assigned.</li>
+                    {% endfor %}
+                </ul>
+                <a href="/request_service" class="btn btn-primary btn-sm">Request New Service</a>
+            </div>
+            <div class="portal-card">
+                <h3>Support Tickets</h3>
+                <ul>
+                    {% for ticket in user_tickets %}
+                    <li>
+                        <a href="/client/ticket/{{ ticket.id }}">{{ ticket.subject }}</a> - {{ ticket.status }}
+                    </li>
+                    {% else %}
+                    <li>No tickets submitted.</li>
+                    {% endfor %}
+                </ul>
+                <a href="/client/ticket/new" class="btn btn-primary btn-sm">Create Ticket</a>
+            </div>
+            <div class="portal-card">
+                <h3>Account</h3>
+                <ul>
+                    <li><a href="/profile">View Profile</a></li>
+                    <li><a href="/change_password">Change Password</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
