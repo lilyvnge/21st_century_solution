@@ -201,7 +201,7 @@ def log_login_attempt(email, success, ip_address=None):  # record login attempts
         cursor = db.cursor()  # cursor
         cursor.execute(
             'INSERT INTO login_attempts (email, ip_address, attempted_at, success) VALUES (%s, %s, %s, %s)',
-            (email, ip_address, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), int(success))
+            (email, ip_address, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), success)  # FIXED: removed int() conversion
         )  # insert login attempt
         db.commit()  # commit
     except Exception as e:
@@ -212,9 +212,9 @@ def is_brute_force(email, ip_address):  # simple brute-force detection using rec
         db = get_db()  # get DB
         cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
         cursor.execute(
-            'SELECT COUNT(*) as count FROM login_attempts WHERE email = %s AND ip_address = %s AND success = 0 AND attempted_at > %s',
+            'SELECT COUNT(*) as count FROM login_attempts WHERE email = %s AND ip_address = %s AND success = FALSE AND attempted_at > %s',
             (email, ip_address, (datetime.now() - timedelta(minutes=15)).strftime('%Y-%m-%d %H:%M:%S'))
-        )  # count failures in last 15 minutes
+        )  # count failures in last 15 minutes - FIXED: use FALSE instead of 0
         recent_failures = cursor.fetchone()  # fetch result
         return recent_failures['count'] >= 5 if recent_failures else False  # consider brute-force if >=5
     except Exception as e:
@@ -653,79 +653,64 @@ def security_audits():  # security audits page
     return render_template('security_audits.html')  # render template
 
 @app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        remember_me = 'remember_me' in request.form
-        ip_address = request.remote_addr
+def login():  # login route
+    if request.method == 'POST':  # handle form submit
+        email = request.form['email']  # get email
+        password = request.form['password']  # get password
+        remember_me = 'remember_me' in request.form  # check remember me
+        ip_address = request.remote_addr  # client IP
         
-        if is_brute_force(email, ip_address):
-            flash('Too many failed login attempts. Please try again later.', 'danger')
-            log_login_attempt(email, False, ip_address)
-            return render_template('login.html')
+        # FIXED: Use proper boolean comparison
+        if is_brute_force(email, ip_address):  # brute force check
+            flash('Too many failed login attempts. Please try again later.', 'danger')  # flash
+            log_login_attempt(email, False, ip_address)  # log failed attempt
+            return render_template('login.html')  # render login again
         
         try:
-            db = get_db()
-            cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
-            user = cursor.fetchone()
+            db = get_db()  # get DB
+            cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+            cursor.execute(
+                'SELECT * FROM users WHERE email = %s', (email,)
+            )  # fetch user by email
+            user = cursor.fetchone()  # get user row
             
-            if user:
-                # Test password verification first
-                password_correct = check_password_hash(user['password_hash'], password)
-                print(f"Password check for {email}: {password_correct}")
+            if user and check_password_hash(user['password_hash'], password):  # verify password
+                session.clear()  # Clear any existing session first
+                session['user_id'] = safe_get(user, 'id')  # set session user id
+                session['user_email'] = safe_get(user, 'email')  # set session email
+                session['user_name'] = safe_get(user, 'name')  # set session name
+                session['user_role'] = safe_get(user, 'role', 'user')  # set role
                 
-                if password_correct:
-                    # Clear any existing session
-                    session.clear()
-                    
-                    # Set new session data
-                    session['user_id'] = user['id']
-                    session['user_email'] = user['email']
-                    session['user_name'] = user['name']
-                    session['user_role'] = user.get('role', 'user')
-                    
-                    # Update last login
-                    cursor.execute(
-                        'UPDATE users SET last_login = %s WHERE id = %s',
-                        (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user['id'])
-                    )
-                    
-                    # Set session permanence
-                    session.permanent = bool(remember_me)
-                    
-                    db.commit()
-                    
-                    # Log the activity (but don't let it break login)
-                    try:
-                        log_activity(user['id'], 'login', 'User logged in successfully', ip_address)
-                        log_login_attempt(email, True, ip_address)
-                    except Exception as log_error:
-                        print(f"Logging error (non-critical): {log_error}")
-                    
-                    flash('Login successful!', 'success')
-                    
-                    # Force session save
-                    session.modified = True
-                    
-                    # Redirect based on role
-                    if user.get('role') == 'admin':
-                        return redirect(url_for('admin_dashboard'))
-                    else:
-                        return redirect(url_for('client_portal'))
+                cursor.execute(
+                    'UPDATE users SET last_login = %s WHERE id = %s',
+                    (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), safe_get(user, 'id'))
+                )  # update last_login
+                
+                if remember_me:
+                    session.permanent = True  # set permanent session
+                    app.permanent_session_lifetime = timedelta(days=30)  # set lifetime
                 else:
-                    log_login_attempt(email, False, ip_address)
-                    flash('Invalid email or password.', 'danger')
+                    session.permanent = False  # not permanent
+                
+                db.commit()  # commit updates
+                log_activity(safe_get(user, 'id'), 'login', 'User logged in successfully', ip_address)  # log activity
+                log_login_attempt(email, True, ip_address)  # log successful login - FIXED: no int() conversion
+                
+                flash('Login successful!', 'success')  # flash success
+                
+                if safe_get(user, 'role') == 'admin':  # redirect based on role
+                    return redirect(url_for('admin_dashboard'))
+                else:
+                    return redirect(url_for('client_portal'))
             else:
-                log_login_attempt(email, False, ip_address)
-                flash('Invalid email or password.', 'danger')
+                log_login_attempt(email, False, ip_address)  # log failed attempt - FIXED: no int() conversion
+                flash('Invalid email or password.', 'danger')  # flash invalid
                 
         except Exception as e:
-            print(f"Login error: {e}")
-            flash('Database error. Please try again.', 'danger')
+            flash('Database error. Please try again.', 'danger')  # flash DB error
+            print(f"Database error during login: {e}")  # print error
     
-    return render_template('login.html')
+    return render_template('login.html')  # render login template
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():  # user registration route
@@ -1953,4 +1938,57 @@ def debug_brute_force():
     except Exception as e:
         return f"Brute force debug error: {str(e)}"
     
+@app.route('/test-fixed-login', methods=['GET', 'POST'])
+def test_fixed_login():
+    """Test login with the fixed brute force check"""
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        try:
+            # Test brute force check first
+            brute_result = is_brute_force(email, request.remote_addr)
+            print(f"Brute force check result: {brute_result}")
+            
+            if brute_result:
+                return "Blocked by brute force protection (but check passed!)"
+            
+            # Continue with normal login
+            db = get_db()
+            cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+            user = cursor.fetchone()
+            
+            if user and check_password_hash(user['password_hash'], password):
+                session.clear()
+                session['user_id'] = user['id']
+                session['user_email'] = user['email']
+                session['user_name'] = user['name']
+                session['user_role'] = user['role']
+                session.permanent = True
+                
+                # Log successful attempt
+                log_login_attempt(email, True, request.remote_addr)
+                
+                return f"""
+                Login successful!<br>
+                Session set: {dict(session)}<br>
+                <a href="/check-session">Check Session</a><br>
+                <a href="/admin/dashboard">Go to Admin Dashboard</a>
+                """
+            else:
+                # Log failed attempt
+                log_login_attempt(email, False, request.remote_addr)
+                return "Invalid credentials"
+                
+        except Exception as e:
+            return f"Error: {str(e)}"
+    
+    return '''
+    <form method="post">
+        <input type="email" name="email" value="admin@21centurysolutions.com" required>
+        <input type="password" name="password" value="changeme123" required>
+        <button type="submit">Test Fixed Login</button>
+    </form>
+    '''    
     
