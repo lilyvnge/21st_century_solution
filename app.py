@@ -1,77 +1,53 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, g  # import Flask and common helpers
-from functools import wraps  # import decorator helper
-import os  # operating system utilities
-import psycopg2  # PostgreSQL driver
-import psycopg2.extras  # extras for RealDictCursor
-from datetime import datetime, timedelta  # date/time utilities
-from werkzeug.security import generate_password_hash, check_password_hash  # password hashing utilities
-import uuid  # for generating tokens
-import re  # regular expressions
-import requests  # HTTP requests
-import whois  # WHOIS lookup
-import dns.resolver  # DNS queries
-import json  # JSON encoding/decoding
-import hashlib  # hashing utilities
-import threading  # threading (not heavily used)
-import time  # time utilities
-from urllib.parse import urljoin, urlparse  # URL parsing/joining
-from bs4 import BeautifulSoup  # HTML parsing
-import socket  # network sockets
-import subprocess  # run system commands
-import platform  # detect OS platform
-import ipaddress  # validate IP addresses
-from concurrent.futures import ThreadPoolExecutor, as_completed  # thread pool for concurrent tasks
-from dotenv import load_dotenv  # load .env files
-load_dotenv()  # load environment variables from .env
+from flask import Flask, render_template, request, redirect, url_for, session, flash, g
+from functools import wraps
+import os
+import psycopg2
+import psycopg2.extras
+from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
+import uuid
+import re
+import requests
+import whois
+import dns.resolver
+import json
+import hashlib
+import threading
+import time
+from urllib.parse import urljoin, urlparse
+from bs4 import BeautifulSoup
+import socket
+import subprocess
+import platform
+import ipaddress
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dotenv import load_dotenv
+load_dotenv()
 
-app = Flask(__name__)  # create Flask app
-app.secret_key = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'  # secret for sessions
-# session configuration
-app.config['SESSION_COOKIE_SECURE'] = True  # Required for HTTPS on Render
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
-app.config['PGHOST'] = os.environ.get('PGHOST')  # Postgres host from env
-app.config['PGDATABASE'] = os.environ.get('PGDATABASE')  # Postgres database name
-app.config['PGUSER'] = os.environ.get('PGUSER')  # Postgres user
-app.config['PGPASSWORD'] = os.environ.get('PGPASSWORD')  # Postgres password
-app.config['PGPORT'] = os.environ.get('PGPORT', 5432)  # Postgres port with default
-app.config['SECURITY_PASSWORD_SALT'] = os.environ.get('SECURITY_PASSWORD_SALT') or 'dev-salt-change-in-production'  # salt fallback
-app.config['SCAN_TIMEOUT'] = 10  # default scan timeout seconds
-app.config['MAX_REDIRECTS'] = 5  # max redirects for requests
+app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+app.config['PGHOST'] = os.environ.get('PGHOST')
+app.config['PGDATABASE'] = os.environ.get('PGDATABASE')
+app.config['PGUSER'] = os.environ.get('PGUSER')
+app.config['PGPASSWORD'] = os.environ.get('PGPASSWORD')
+app.config['PGPORT'] = os.environ.get('PGPORT', 5432)
+app.config['SECURITY_PASSWORD_SALT'] = os.environ.get('SECURITY_PASSWORD_SALT') or 'dev-salt-change-in-production'
+app.config['SCAN_TIMEOUT'] = 10
+app.config['MAX_REDIRECTS'] = 5
 
 def get_db():
-    """Get or create DB connection stored in Flask g"""
     if 'db' not in g:
-        try:
-            # Try connecting with the provided credentials
-            g.db = psycopg2.connect(
-                host=app.config['PGHOST'],
-                database=app.config['PGDATABASE'],
-                user=app.config['PGUSER'],
-                password=app.config['PGPASSWORD'],
-                port=app.config['PGPORT']
-            )
-            print("Database connection established successfully")
-        except Exception as e:
-            print(f"Database connection failed: {e}")
-            # Try alternative connection method for Render
-            try:
-                # Render sometimes provides a DATABASE_URL instead of separate vars
-                database_url = os.environ.get('DATABASE_URL')
-                if database_url:
-                    g.db = psycopg2.connect(database_url, sslmode='require')
-                    print("Connected using DATABASE_URL")
-                else:
-                    # Re-raise the original error
-                    raise e
-            except Exception as e2:
-                print(f"All connection attempts failed: {e2}")
-                raise e2
+        g.db = psycopg2.connect(
+            host=app.config['PGHOST'],
+            database=app.config['PGDATABASE'],
+            user=app.config['PGUSER'],
+            password=app.config['PGPASSWORD'],
+            port=app.config['PGPORT']
+        )
     return g.db
 
-def init_db(db):  # initialize DB schema and default data
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def init_db(db):
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -90,7 +66,7 @@ def init_db(db):  # initialize DB schema and default data
             phone VARCHAR(50),
             title VARCHAR(255)
         )
-    ''')  # create users table if missing
+    ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_sessions (
             id SERIAL PRIMARY KEY,
@@ -102,7 +78,7 @@ def init_db(db):  # initialize DB schema and default data
             expires_at TIMESTAMP NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
-    ''')  # create user_sessions table
+    ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS login_attempts (
             id SERIAL PRIMARY KEY,
@@ -111,7 +87,7 @@ def init_db(db):  # initialize DB schema and default data
             attempted_at TIMESTAMP NOT NULL,
             success BOOLEAN NOT NULL
         )
-    ''')  # create login_attempts table
+    ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_activities (
             id SERIAL PRIMARY KEY,
@@ -122,7 +98,7 @@ def init_db(db):  # initialize DB schema and default data
             performed_at TIMESTAMP NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
-    ''')  # create user_activities table
+    ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS services (
             id SERIAL PRIMARY KEY,
@@ -133,7 +109,7 @@ def init_db(db):  # initialize DB schema and default data
             expires_on TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
-    ''')  # create services table
+    ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS support_tickets (
             id SERIAL PRIMARY KEY,
@@ -146,21 +122,21 @@ def init_db(db):  # initialize DB schema and default data
             notes TEXT,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
-    ''')  # create support_tickets table
-    cursor.execute('SELECT COUNT(*) as count FROM users')  # check if any users exist
-    result = cursor.fetchone()  # fetch count
-    if result['count'] == 0:  # if no users, create default admin
-        hashed_password = generate_password_hash(os.environ.get('ADMIN_PASSWORD', 'changeme123'))  # hash admin pw
+    ''')
+    cursor.execute('SELECT COUNT(*) as count FROM users')
+    result = cursor.fetchone()
+    if result['count'] == 0:
+        hashed_password = generate_password_hash(os.environ.get('ADMIN_PASSWORD', 'changeme123'))
         cursor.execute(
             'INSERT INTO users (name, email, password_hash, role, email_verified, created_at) VALUES (%s, %s, %s, %s, %s, %s)',
-            ('Admin User', 'admin@21centurysolutions.com', hashed_password, 'admin', 1, datetime.now())
-        )  # insert default admin user
-        print("Default admin user created: admin@21centurysolutions.com / changeme123")  # print notice
-    init_scan_results_table(db)  # ensure scan_results table exists
-    db.commit()  # commit changes
+            ('Admin User', 'admin@21centurysolutions.com', hashed_password, 'admin', True, datetime.now())
+        )
+        print("Default admin user created: admin@21centurysolutions.com / adminpassword")
+    init_scan_results_table(db)
+    db.commit()
 
-def init_scan_results_table(db):  # create scan_results table
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def init_scan_results_table(db):
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS scan_results (
             id SERIAL PRIMARY KEY,
@@ -173,195 +149,195 @@ def init_scan_results_table(db):  # create scan_results table
             created_at TIMESTAMP NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
-    ''')  # create scan_results schema
-    db.commit()  # commit
+    ''')
+    db.commit()
 
-def close_db(e=None):  # close DB connection on teardown
-    db = g.pop('db', None)  # remove db from g if present
-    if db is not None:  # if connection existed
-        db.close()  # close it
+def close_db(e=None):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 
-app.teardown_appcontext(close_db)  # register teardown handler
+app.teardown_appcontext(close_db)
 
-def log_activity(user_id, activity_type, description, ip_address=None):  # insert a user activity record
+def log_activity(user_id, activity_type, description, ip_address=None):
     try:
-        db = get_db()  # get DB connection
-        cursor = db.cursor()  # standard cursor
+        db = get_db()
+        cursor = db.cursor()
         cursor.execute(
             'INSERT INTO user_activities (user_id, activity_type, description, ip_address, performed_at) VALUES (%s, %s, %s, %s, %s)',
             (user_id, activity_type, description, ip_address, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        )  # insert activity row
-        db.commit()  # commit
+        )
+        db.commit()
     except Exception as e:
-        print(f"Error logging activity: {e}")  # print error on failure
+        print(f"Error logging activity: {e}")
 
-def log_login_attempt(email, success, ip_address=None):  # record login attempts
+def log_login_attempt(email, success, ip_address=None):
     try:
-        db = get_db()  # get DB
-        cursor = db.cursor()  # cursor
+        db = get_db()
+        cursor = db.cursor()
         cursor.execute(
             'INSERT INTO login_attempts (email, ip_address, attempted_at, success) VALUES (%s, %s, %s, %s)',
-            (email, ip_address, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), success)  # FIXED: removed int() conversion
-        )  # insert login attempt
-        db.commit()  # commit
+            (email, ip_address, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), int(success))
+        )
+        db.commit()
     except Exception as e:
-        print(f"Error logging login attempt: {e}")  # print error
+        print(f"Error logging login attempt: {e}")
 
-def is_brute_force(email, ip_address):  # simple brute-force detection using recent failures
+def is_brute_force(email, ip_address):
     try:
-        db = get_db()  # get DB
-        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+        db = get_db()
+        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cursor.execute(
-            'SELECT COUNT(*) as count FROM login_attempts WHERE email = %s AND ip_address = %s AND success = FALSE AND attempted_at > %s',
+            'SELECT COUNT(*) as count FROM login_attempts WHERE email = %s AND ip_address = %s AND success = 0 AND attempted_at > %s',
             (email, ip_address, (datetime.now() - timedelta(minutes=15)).strftime('%Y-%m-%d %H:%M:%S'))
-        )  # count failures in last 15 minutes - FIXED: use FALSE instead of 0
-        recent_failures = cursor.fetchone()  # fetch result
-        return recent_failures['count'] >= 5 if recent_failures else False  # consider brute-force if >=5
+        )
+        recent_failures = cursor.fetchone()
+        return recent_failures['count'] >= 5 if recent_failures else False
     except Exception as e:
-        print(f"Error checking brute force: {e}")  # print error
-        return False  # default to not brute force on error
+        print(f"Error checking brute force: {e}")
+        return False
 
-def generate_token():  # generate a random UUID token
-    return str(uuid.uuid4())  # return as string
+def generate_token():
+    return str(uuid.uuid4())
 
-def validate_email(email):  # validate email with regex
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'  # simple email regex
-    return re.match(pattern, email) is not None  # return boolean
+def validate_email(email):
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
 
-def safe_get(d, key, default=None):  # safe dict access helper
+def safe_get(d, key, default=None):
     try:
-        return d[key] if key in d else default  # return value or default
+        return d[key] if key in d else default
     except (KeyError, TypeError, IndexError):
-        return default  # fallback default on error
+        return default
 
-def login_required(f):  # decorator to require login
+def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:  # not logged in
-            flash('Please log in to access this page.', 'warning')  # flash message
-            return redirect(url_for('login'))  # redirect to login
-        return f(*args, **kwargs)  # call original function
-    return decorated_function  # return wrapper
+        if 'user_id' not in session:
+            flash('Please log in to access this page.', 'warning')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
-def admin_required(f):  # decorator to require admin role
+def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:  # ensure logged in
-            flash('Please log in to access this page.', 'warning')  # flash
-            return redirect(url_for('login'))  # redirect
+        if 'user_id' not in session:
+            flash('Please log in to access this page.', 'warning')
+            return redirect(url_for('login'))
         try:
-            db = get_db()  # get DB
-            cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+            db = get_db()
+            cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cursor.execute(
                 'SELECT role FROM users WHERE id = %s', (session['user_id'],)
-            )  # fetch role
-            user = cursor.fetchone()  # get user row
-            if user and safe_get(user, 'role') != 'admin':  # if not admin
-                flash('Administrator access required.', 'danger')  # flash
-                return redirect(url_for('home'))  # redirect home
-            return f(*args, **kwargs)  # call protected function
+            )
+            user = cursor.fetchone()
+            if user and safe_get(user, 'role') != 'admin':
+                flash('Administrator access required.', 'danger')
+                return redirect(url_for('home'))
+            return f(*args, **kwargs)
         except Exception as e:
-            flash('Database error. Please try again.', 'danger')  # flash on DB error
-            return redirect(url_for('home'))  # redirect home
-    return decorated_function  # return wrapper
+            flash('Database error. Please try again.', 'danger')
+            return redirect(url_for('home'))
+    return decorated_function
 
-def safe_request(url, method='GET', data=None, headers=None, timeout=10):  # safe HTTP request wrapper
-    """Make safe HTTP requests with error handling"""  # docstring
+def safe_request(url, method='GET', data=None, headers=None, timeout=10):
+    """Make safe HTTP requests with error handling"""
     try:
-        if method.upper() == 'GET':  # GET request
-            response = requests.get(url, timeout=timeout, verify=False, allow_redirects=True)  # send GET
+        if method.upper() == 'GET':
+            response = requests.get(url, timeout=timeout, verify=False, allow_redirects=True)
         else:
-            response = requests.post(url, data=data, timeout=timeout, verify=False, allow_redirects=True)  # send POST
-        return response  # return response object
+            response = requests.post(url, data=data, timeout=timeout, verify=False, allow_redirects=True)
+        return response
     except requests.RequestException as e:
-        return None  # return None on request errors
+        return None
 
-def extract_forms(url):  # parse HTML and extract form structures
-    """Extract all forms from a webpage"""  # docstring
+def extract_forms(url):
+    """Extract all forms from a webpage"""
     try:
-        response = safe_request(url)  # fetch page
+        response = safe_request(url)
         if not response:
-            return []  # return empty list if fetch failed
+            return []
         
-        soup = BeautifulSoup(response.content, 'html.parser')  # parse HTML
-        forms = []  # container for form data
+        soup = BeautifulSoup(response.content, 'html.parser')
+        forms = []
         
-        for form in soup.find_all('form'):  # iterate forms
+        for form in soup.find_all('form'):
             form_details = {
-                'action': form.get('action', ''),  # action attribute
-                'method': form.get('method', 'GET').upper(),  # method attribute
+                'action': form.get('action', ''),
+                'method': form.get('method', 'GET').upper(),
                 'inputs': []
-            }  # initialize form details
+            }
             
-            for input_tag in form.find_all('input'):  # iterate input tags
+            for input_tag in form.find_all('input'):
                 input_details = {
-                    'type': input_tag.get('type', 'text'),  # input type
-                    'name': input_tag.get('name', ''),  # name attribute
-                    'value': input_tag.get('value', '')  # default value
+                    'type': input_tag.get('type', 'text'),
+                    'name': input_tag.get('name', ''),
+                    'value': input_tag.get('value', '')
                 }
-                form_details['inputs'].append(input_details)  # append input info
+                form_details['inputs'].append(input_details)
             
-            forms.append(form_details)  # add form to list
+            forms.append(form_details)
         
-        return forms  # return extracted forms
+        return forms
     except Exception as e:
-        print(f"Error extracting forms: {e}")  # print error
-        return []  # fallback empty list
+        print(f"Error extracting forms: {e}")
+        return []
 
-def scan_sql_injection(target_url):  # scan URL for SQL injection patterns
-    """Scan for SQL Injection vulnerabilities"""  # docstring
-    vulnerabilities = []  # list to collect findings
+def scan_sql_injection(target_url):
+    """Scan for SQL Injection vulnerabilities"""
+    vulnerabilities = []
     payloads = [
-        "'",  # simple single quote
-        "';",  # quote+semicolon
-        "' OR '1'='1",  # tautology
-        "' UNION SELECT 1,2,3--",  # union payload
-        "'; DROP TABLE users--",  # destructive payload (test only)
-        "' AND 1=1--",  # benign control payload
-        "' AND 1=2--"  # false condition payload
-    ]  # payload list
+        "'",
+        "';",
+        "' OR '1'='1",
+        "' UNION SELECT 1,2,3--",
+        "'; DROP TABLE users--",
+        "' AND 1=1--",
+        "' AND 1=2--"
+    ]
     
     try:
         # Test URL parameters
-        parsed_url = urlparse(target_url)  # parse URL
-        if parsed_url.query:  # if query string present
-            params = dict([p.split('=') for p in parsed_url.query.split('&') if '=' in p])  # parse params
+        parsed_url = urlparse(target_url)
+        if parsed_url.query:
+            params = dict([p.split('=') for p in parsed_url.query.split('&') if '=' in p])
             for param in params:
                 for payload in payloads:
-                    test_url = target_url.replace(f"{param}={params[param]}", f"{param}={params[param]}{payload}")  # inject payload
-                    response = safe_request(test_url)  # request test URL
+                    test_url = target_url.replace(f"{param}={params[param]}", f"{param}={params[param]}{payload}")
+                    response = safe_request(test_url)
                     
                     if response and any(error in response.text.lower() for error in [
                         'sql', 'syntax', 'mysql', 'ora', 'microsoft odbc', 'postgresql',
                         'warning', 'error', 'exception', 'database'
-                    ]):  # look for DB error strings
+                    ]):
                         vulnerabilities.append({
                             'type': 'SQL Injection',
                             'parameter': param,
                             'payload': payload,
                             'url': test_url,
                             'evidence': 'Database error found in response'
-                        })  # append finding
-                        break  # stop testing this param
+                        })
+                        break
         
         # Test forms
-        forms = extract_forms(target_url)  # extract forms
+        forms = extract_forms(target_url)
         for form in forms:
-            form_action = urljoin(target_url, form['action'])  # resolve action URL
+            form_action = urljoin(target_url, form['action'])
             for input_field in form['inputs']:
-                if input_field['name'] and input_field['type'] in ['text', 'password', 'search']:  # relevant inputs
+                if input_field['name'] and input_field['type'] in ['text', 'password', 'search']:
                     for payload in payloads:
                         data = {}
                         for field in form['inputs']:
                             if field['name']:
-                                data[field['name']] = payload if field['name'] == input_field['name'] else 'test'  # set payload for target field
+                                data[field['name']] = payload if field['name'] == input_field['name'] else 'test'
                         
-                        response = safe_request(form_action, method=form['method'], data=data)  # submit form
+                        response = safe_request(form_action, method=form['method'], data=data)
                         
                         if response and any(error in response.text.lower() for error in [
                             'sql', 'syntax', 'mysql', 'ora', 'microsoft odbc', 'postgresql',
                             'warning', 'error', 'exception', 'database'
-                        ]):  # check for DB errors
+                        ]):
                             vulnerabilities.append({
                                 'type': 'SQL Injection',
                                 'parameter': input_field['name'],
@@ -369,60 +345,60 @@ def scan_sql_injection(target_url):  # scan URL for SQL injection patterns
                                 'url': form_action,
                                 'method': form['method'],
                                 'evidence': 'Database error found in response'
-                            })  # add finding
-                            break  # stop testing this input
+                            })
+                            break
         
-        return vulnerabilities  # return findings
+        return vulnerabilities
     
     except Exception as e:
-        print(f"SQL Injection scan error: {e}")  # print error
-        return []  # return empty list on exception
+        print(f"SQL Injection scan error: {e}")
+        return []
 
-def scan_xss_vulnerabilities(target_url):  # scan for reflected XSS
-    """Scan for Cross-Site Scripting (XSS) vulnerabilities"""  # docstring
-    vulnerabilities = []  # store findings
+def scan_xss_vulnerabilities(target_url):
+    """Scan for Cross-Site Scripting (XSS) vulnerabilities"""
+    vulnerabilities = []
     payloads = [
-        "<script>alert('XSS')</script>",  # script payload
-        "<img src=x onerror=alert('XSS')>",  # image onerror
-        "<svg onload=alert('XSS')>",  # svg onload
-        "'\"><script>alert('XSS')</script>",  # quote-escaping payload
-        "javascript:alert('XSS')"  # javascript: URI
-    ]  # XSS payloads
+        "<script>alert('XSS')</script>",
+        "<img src=x onerror=alert('XSS')>",
+        "<svg onload=alert('XSS')>",
+        "'\"><script>alert('XSS')</script>",
+        "javascript:alert('XSS')"
+    ]
     
     try:
         # Test URL parameters
-        parsed_url = urlparse(target_url)  # parse target
-        if parsed_url.query:  # has query params
-            params = dict([p.split('=') for p in parsed_url.query.split('&') if '=' in p])  # parse params
+        parsed_url = urlparse(target_url)
+        if parsed_url.query:
+            params = dict([p.split('=') for p in parsed_url.query.split('&') if '=' in p])
             for param in params:
                 for payload in payloads:
-                    test_url = target_url.replace(f"{param}={params[param]}", f"{param}={payload}")  # inject payload
-                    response = safe_request(test_url)  # fetch
+                    test_url = target_url.replace(f"{param}={params[param]}", f"{param}={payload}")
+                    response = safe_request(test_url)
                     
-                    if response and payload in response.text:  # check if payload reflected verbatim
+                    if response and payload in response.text:
                         vulnerabilities.append({
                             'type': 'XSS',
                             'parameter': param,
                             'payload': payload,
                             'url': test_url,
                             'evidence': 'Payload reflected in response without sanitization'
-                        })  # add finding
+                        })
         
         # Test forms
-        forms = extract_forms(target_url)  # get forms
+        forms = extract_forms(target_url)
         for form in forms:
-            form_action = urljoin(target_url, form['action'])  # resolve action
+            form_action = urljoin(target_url, form['action'])
             for input_field in form['inputs']:
-                if input_field['name'] and input_field['type'] in ['text', 'password', 'search', 'textarea']:  # candidate fields
+                if input_field['name'] and input_field['type'] in ['text', 'password', 'search', 'textarea']:
                     for payload in payloads:
                         data = {}
                         for field in form['inputs']:
                             if field['name']:
-                                data[field['name']] = payload if field['name'] == input_field['name'] else 'test'  # set payload
+                                data[field['name']] = payload if field['name'] == input_field['name'] else 'test'
                         
-                        response = safe_request(form_action, method=form['method'], data=data)  # submit
+                        response = safe_request(form_action, method=form['method'], data=data)
                         
-                        if response and payload in response.text:  # check reflected payload
+                        if response and payload in response.text:
                             vulnerabilities.append({
                                 'type': 'XSS',
                                 'parameter': input_field['name'],
@@ -430,33 +406,33 @@ def scan_xss_vulnerabilities(target_url):  # scan for reflected XSS
                                 'url': form_action,
                                 'method': form['method'],
                                 'evidence': 'Payload reflected in response without sanitization'
-                            })  # add finding
+                            })
         
-        return vulnerabilities  # return list
+        return vulnerabilities
     
     except Exception as e:
-        print(f"XSS scan error: {e}")  # print error
-        return []  # fallback empty
+        print(f"XSS scan error: {e}")
+        return []
 
-def scan_csrf_vulnerabilities(target_url):  # detect missing CSRF tokens in POST forms
-    """Scan for Cross-Site Request Forgery (CSRF) vulnerabilities"""  # docstring
-    vulnerabilities = []  # results list
+def scan_csrf_vulnerabilities(target_url):
+    """Scan for Cross-Site Request Forgery (CSRF) vulnerabilities"""
+    vulnerabilities = []
     
     try:
-        forms = extract_forms(target_url)  # extract forms
+        forms = extract_forms(target_url)
         
         for form in forms:
-            if form['method'] == 'POST':  # only check POST forms
-                has_csrf_token = False  # assume missing
-                csrf_indicators = ['csrf', 'token', 'nonce', 'authenticity']  # common token names
+            if form['method'] == 'POST':
+                has_csrf_token = False
+                csrf_indicators = ['csrf', 'token', 'nonce', 'authenticity']
                 
                 for input_field in form['inputs']:
-                    field_name = input_field['name'].lower() if input_field['name'] else ''  # lowercase field name
+                    field_name = input_field['name'].lower() if input_field['name'] else ''
                     if any(indicator in field_name for indicator in csrf_indicators):
-                        has_csrf_token = True  # token-like field found
+                        has_csrf_token = True
                         break
                 
-                if not has_csrf_token:  # if missing, report
+                if not has_csrf_token:
                     vulnerabilities.append({
                         'type': 'CSRF',
                         'form_action': urljoin(target_url, form['action']),
@@ -465,982 +441,956 @@ def scan_csrf_vulnerabilities(target_url):  # detect missing CSRF tokens in POST
                         'risk': 'Medium'
                     })
         
-        return vulnerabilities  # return findings
+        return vulnerabilities
     
     except Exception as e:
-        print(f"CSRF scan error: {e}")  # print error
-        return []  # fallback empty
+        print(f"CSRF scan error: {e}")
+        return []
 
-def calculate_vulnerability_risk(vulnerabilities):  # simple risk aggregation
-    """Calculate overall risk level based on vulnerabilities found"""  # docstring
+def calculate_vulnerability_risk(vulnerabilities):
+    """Calculate overall risk level based on vulnerabilities found"""
     if not vulnerabilities:
-        return 'Low'  # no vulns -> low risk
+        return 'Low'
     
-    high_severity = any(vuln['type'] in ['SQL Injection', 'XSS'] for vuln in vulnerabilities)  # check for high severity types
-    medium_severity = any(vuln['type'] == 'CSRF' for vuln in vulnerabilities)  # check for medium
+    high_severity = any(vuln['type'] in ['SQL Injection', 'XSS'] for vuln in vulnerabilities)
+    medium_severity = any(vuln['type'] == 'CSRF' for vuln in vulnerabilities)
     
     if high_severity:
-        return 'High'  # high if any high severity
+        return 'High'
     elif medium_severity:
-        return 'Medium'  # medium if any medium
+        return 'Medium'
     else:
-        return 'Low'  # else low
+        return 'Low'
 
-def is_valid_ip(target):  # validate IP or domain name
-    """Validate if the target is a valid IP address or domain"""  # docstring
+def is_valid_ip(target):
+    """Validate if the target is a valid IP address or domain"""
     try:
         # Check if it's a valid IP address
-        ipaddress.ip_address(target)  # try to parse as IP
-        return True  # valid IP
+        ipaddress.ip_address(target)
+        return True
     except ValueError:
         # Check if it's a valid domain name
-        if re.match(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', target):  # basic domain regex
-            return True  # looks like domain
-        return False  # otherwise invalid
+        if re.match(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', target):
+            return True
+        return False
 
-def scan_port(target, port, timeout=2):  # check single TCP port
-    """Scan a single port on the target"""  # docstring
+def scan_port(target, port, timeout=2):
+    """Scan a single port on the target"""
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:  # create socket
-            sock.settimeout(timeout)  # set timeout
-            result = sock.connect_ex((target, port))  # attempt connect
-            return (port, result == 0)  # return (port, open_bool)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(timeout)
+            result = sock.connect_ex((target, port))
+            return (port, result == 0)  # Return tuple directly
     except Exception as e:
-        return (port, False)  # on error treat as closed
+        return (port, False)
 
-def port_scanner_scan(target, ports, max_workers=50):  # concurrent port scanning
-    """Perform port scanning on target with multiple threads"""  # docstring
-    open_ports = []  # collect open ports
+def port_scanner_scan(target, ports, max_workers=50):
+    """Perform port scanning on target with multiple threads"""
+    open_ports = []
     
     try:
         # Resolve domain to IP if needed
         try:
-            target_ip = socket.gethostbyname(target)  # DNS resolve
+            target_ip = socket.gethostbyname(target)
         except socket.gaierror:
-            return [], f"Could not resolve hostname: {target}"  # return error message
+            return [], f"Could not resolve hostname: {target}"
         
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:  # thread pool
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all port scanning tasks
             future_to_port = {
                 executor.submit(scan_port, target_ip, port): port 
                 for port in ports
-            }  # map futures to ports
+            }
             
             # Collect results as they complete
             for future in as_completed(future_to_port):
                 try:
-                    port, is_open = future.result()  # get result tuple
+                    port, is_open = future.result()  # Directly unpack the tuple
                     if is_open:
-                        open_ports.append(port)  # accumulate open ports
+                        open_ports.append(port)
                 except Exception as e:
-                    print(f"Error scanning port: {e}")  # print error
+                    print(f"Error scanning port: {e}")
                     continue
         
-        return open_ports, None  # return open ports and no error
+        return open_ports, None
         
     except Exception as e:
-        return [], f"Error during port scanning: {str(e)}"  # return error message
+        return [], f"Error during port scanning: {str(e)}"
 
-def get_service_name(port):  # map common ports to service names
-    """Get common service name for a port"""  # docstring
+def get_service_name(port):
+    """Get common service name for a port"""
     common_ports = {
         21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS",
         80: "HTTP", 110: "POP3", 143: "IMAP", 443: "HTTPS", 993: "IMAPS",
         995: "POP3S", 3306: "MySQL", 3389: "RDP", 5432: "PostgreSQL",
         27017: "MongoDB", 6379: "Redis"
-    }  # mapping
-    return common_ports.get(port, "Unknown")  # return known name or Unknown
+    }
+    return common_ports.get(port, "Unknown")
 
-def ping_host(target, timeout=3):  # ping host using system ping or HTTPS check on Render
-    """
-    Try to ping a host. Uses the system 'ping' command locally,
-    and HTTPS reachability (via requests) when running on Render.
-    """  # docstring
+def ping_host(target, count=4):
+    """Ping a host and return results"""
     try:
-        # Detect if running on Render
-        running_on_render = os.environ.get("RENDER", "").lower() == "true"  # check env
-        
-        if not running_on_render:
-            # Local environment → use real OS ping
-            count_flag = "-n" if os.name == "nt" else "-c"  # windows vs unix flag
-            output = subprocess.check_output(
-                ["ping", count_flag, "4", target],
-                stderr=subprocess.STDOUT,
-                text=True
-            )  # run ping command and capture output
-            return f"✅ Ping results for {target}:\n\n{output}"  # return formatted result
-
+        # Determine the ping command based on the OS
+        if platform.system().lower() == "windows":
+            cmd = ["ping", "-n", str(count), target]
         else:
-            # Render environment → use HTTPS check
-            try:
-                response = requests.get(f"https://{target}", timeout=timeout)  # attempt HTTPS GET
-                if response.status_code == 200:
-                    return f"✅ {target} is reachable via HTTPS ({response.status_code})."  # reachable
-                else:
-                    return f"⚠️ {target} responded with status {response.status_code}."  # non-200
-            except requests.exceptions.SSLError:
-                return f"⚠️ SSL error when connecting to {target}."  # SSL error
-            except requests.exceptions.ConnectionError:
-                return f"❌ Unable to connect to {target} (connection refused)."  # connection refused
-            except requests.exceptions.Timeout:
-                return f"❌ Connection to {target} timed out."  # timeout
-    except subprocess.CalledProcessError as e:
-        return f"❌ Ping command failed:\n\n{e.output}"  # ping command failed
+            cmd = ["ping", "-c", str(count), target]
+        
+        result = subprocess.run(
+            cmd, 
+            capture_output=True, 
+            text=True, 
+            timeout=10
+        )
+        
+        return result.returncode == 0, result.stdout, result.stderr
+        
+    except subprocess.TimeoutExpired:
+        return False, "", "Ping command timed out"
     except Exception as e:
-        return f"⚠️ Error checking host: {e}"  # other errors
+        return False, "", f"Error executing ping: {str(e)}"
 
-def traceroute_host(target, max_hops=30):  # perform traceroute/tracert
-    """Perform traceroute to a host"""  # docstring
+def traceroute_host(target, max_hops=30):
+    """Perform traceroute to a host"""
     try:
         # Determine the traceroute command based on the OS
         if platform.system().lower() == "windows":
-            cmd = ["tracert", "-h", str(max_hops), target]  # Windows tracert
+            cmd = ["tracert", "-h", str(max_hops), target]
         else:
-            cmd = ["traceroute", "-m", str(max_hops), "-w", "1", target]  # Unix traceroute
+            cmd = ["traceroute", "-m", str(max_hops), "-w", "1", target]
         
         result = subprocess.run(
             cmd, 
             capture_output=True, 
             text=True, 
             timeout=30
-        )  # run traceroute command
+        )
         
-        return result.returncode == 0, result.stdout, result.stderr  # return success flag, stdout, stderr
+        return result.returncode == 0, result.stdout, result.stderr
         
     except subprocess.TimeoutExpired:
-        return False, "", "Traceroute command timed out"  # timeout handling
+        return False, "", "Traceroute command timed out"
     except Exception as e:
-        return False, "", f"Error executing traceroute: {str(e)}"  # other errors
+        return False, "", f"Error executing traceroute: {str(e)}"
 
 @app.route('/')
-def home():  # home page route
-    return render_template('index.html')  # render index template
+def home():
+    return render_template('index.html')
 
 @app.route('/cybersecurity')
-def cybersecurity():  # cybersecurity page
-    return render_template('cybersecurity.html')  # render template
+def cybersecurity():
+    return render_template('cybersecurity.html')
 
 @app.route('/other_solutions')
-def other_solutions():  # other solutions page
-    return render_template('other_solutions.html')  # render template
+def other_solutions():
+    return render_template('other_solutions.html')
 
 @app.route('/contact')
-def contact():  # contact page
-    return render_template('contact.html')  # render template
+def contact():
+    return render_template('contact.html')
 
 @app.route('/network_security')
-def network_security():  # network security page
-    return render_template('network_security.html')  # render template
+def network_security():
+    return render_template('network_security.html')
 
 @app.route('/endpoint_protection')
-def endpoint_protection():  # endpoint protection page
-    return render_template('endpoint_protection.html')  # render template
+def endpoint_protection():
+    return render_template('endpoint_protection.html')
 
 @app.route('/cloud_security')
-def cloud_security():  # cloud security page
-    return render_template('cloud_security.html')  # render template
+def cloud_security():
+    return render_template('cloud_security.html')
 
 @app.route('/threat_intelligence')
-def threat_intelligence():  # threat intelligence page
-    return render_template('threat_intelligence.html')  # render template
+def threat_intelligence():
+    return render_template('threat_intelligence.html')
 
 @app.route('/incident_response')
-def incident_response():  # incident response page
-    return render_template('incident_response.html')  # render template
+def incident_response():
+    return render_template('incident_response.html')
 
 @app.route('/security_audits')
-def security_audits():  # security audits page
-    return render_template('security_audits.html')  # render template
+def security_audits():
+    return render_template('security_audits.html')
 
 @app.route('/login', methods=['GET', 'POST'])
-def login():  # login route
-    if request.method == 'POST':  # handle form submit
-        email = request.form['email']  # get email
-        password = request.form['password']  # get password
-        remember_me = 'remember_me' in request.form  # check remember me
-        ip_address = request.remote_addr  # client IP
-        
-        # FIXED: Use proper boolean comparison
-        if is_brute_force(email, ip_address):  # brute force check
-            flash('Too many failed login attempts. Please try again later.', 'danger')  # flash
-            log_login_attempt(email, False, ip_address)  # log failed attempt
-            return render_template('login.html')  # render login again
-        
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        remember_me = 'remember_me' in request.form
+        ip_address = request.remote_addr
+        if is_brute_force(email, ip_address):
+            flash('Too many failed login attempts. Please try again later.', 'danger')
+            log_login_attempt(email, False, ip_address)
+            return render_template('login.html')
         try:
-            db = get_db()  # get DB
-            cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+            db = get_db()
+            cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cursor.execute(
                 'SELECT * FROM users WHERE email = %s', (email,)
-            )  # fetch user by email
-            user = cursor.fetchone()  # get user row
-            
-            if user and check_password_hash(user['password_hash'], password):  # verify password
-                session.clear()  # Clear any existing session first
-                session['user_id'] = safe_get(user, 'id')  # set session user id
-                session['user_email'] = safe_get(user, 'email')  # set session email
-                session['user_name'] = safe_get(user, 'name')  # set session name
-                session['user_role'] = safe_get(user, 'role', 'user')  # set role
-                
+            )
+            user = cursor.fetchone()
+            if user and check_password_hash(user['password_hash'], password):
+                session['user_id'] = safe_get(user, 'id')
+                session['user_email'] = safe_get(user, 'email')
+                session['user_name'] = safe_get(user, 'name')
+                session['user_role'] = safe_get(user, 'role', 'user')
                 cursor.execute(
                     'UPDATE users SET last_login = %s WHERE id = %s',
                     (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), safe_get(user, 'id'))
-                )  # update last_login
-                
+                )
                 if remember_me:
-                    session.permanent = True  # set permanent session
-                    app.permanent_session_lifetime = timedelta(days=30)  # set lifetime
+                    session.permanent = True
+                    app.permanent_session_lifetime = timedelta(days=30)
                 else:
-                    session.permanent = False  # not permanent
-                
-                db.commit()  # commit updates
-                log_activity(safe_get(user, 'id'), 'login', 'User logged in successfully', ip_address)  # log activity
-                log_login_attempt(email, True, ip_address)  # log successful login - FIXED: no int() conversion
-                
-                flash('Login successful!', 'success')  # flash success
-                
-                if safe_get(user, 'role') == 'admin':  # redirect based on role
+                    session.permanent = False
+                db.commit()
+                log_activity(safe_get(user, 'id'), 'login', 'User logged in successfully', ip_address)
+                log_login_attempt(email, True, ip_address)
+                flash('Login successful!', 'success')
+                if safe_get(user, 'role') == 'admin':
                     return redirect(url_for('admin_dashboard'))
                 else:
                     return redirect(url_for('client_portal'))
             else:
-                log_login_attempt(email, False, ip_address)  # log failed attempt - FIXED: no int() conversion
-                flash('Invalid email or password.', 'danger')  # flash invalid
-                
+                log_login_attempt(email, False, ip_address)
+                flash('Invalid email or password.', 'danger')
         except Exception as e:
-            flash('Database error. Please try again.', 'danger')  # flash DB error
-            print(f"Database error during login: {e}")  # print error
-    
-    return render_template('login.html')  # render login template
+            flash('Database error. Please try again.', 'danger')
+            print(f"Database error during login: {e}")
+    return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
-def register():  # user registration route
-    if request.method == 'POST':  # handle submission
-        name = request.form['name']  # get name
-        email = request.form['email']  # get email
-        password = request.form['password']  # get password
-        confirm_password = request.form['confirm_password']  # confirm password
-        company = request.form.get('company', '')  # optional company
-        if not validate_email(email):  # validate email format
-            flash('Please enter a valid email address.', 'danger')  # flash error
-            return render_template('register.html')  # render register
-        if password != confirm_password:  # check match
-            flash('Passwords do not match.', 'danger')  # flash
-            return render_template('register.html')  # render register
-        if len(password) < 8:  # minimum length
-            flash('Password must be at least 8 characters long.', 'danger')  # flash
-            return render_template('register.html')  # render register
-        db = get_db()  # get DB
-        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
-        cursor.execute('SELECT id FROM users WHERE email = %s', (email,))  # check existing
-        existing_user = cursor.fetchone()  # fetch
-        if existing_user:  # if exists
-            flash('Email already registered. Please login instead.', 'danger')  # flash
-            return redirect(url_for('login'))  # redirect to login
-        hashed_password = generate_password_hash(password)  # hash password
-        verification_token = generate_token()  # token for email verification
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        company = request.form.get('company', '')
+        if not validate_email(email):
+            flash('Please enter a valid email address.', 'danger')
+            return render_template('register.html')
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return render_template('register.html')
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+            return render_template('register.html')
+        db = get_db()
+        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor.execute('SELECT id FROM users WHERE email = %s', (email,))
+        existing_user = cursor.fetchone()
+        if existing_user:
+            flash('Email already registered. Please login instead.', 'danger')
+            return redirect(url_for('login'))
+        hashed_password = generate_password_hash(password)
+        verification_token = generate_token()
         cursor.execute(
             'INSERT INTO users (name, email, password_hash, company, verification_token, created_at) VALUES (%s, %s, %s, %s, %s, %s)',
             (name, email, hashed_password, company, verification_token, datetime.now())
-        )  # insert new user
-        db.commit()  # commit
-        verification_url = url_for('verify_email', token=verification_token, _external=True)  # build verify URL
-        print(f"Verification URL: {verification_url}")  # print for dev
-        flash('Registration successful! Please check your email to verify your account.', 'success')  # flash success
-        return redirect(url_for('login'))  # redirect to login
-    return render_template('register.html')  # render register page
+        )
+        db.commit()
+        verification_url = url_for('verify_email', token=verification_token, _external=True)
+        print(f"Verification URL: {verification_url}")
+        flash('Registration successful! Please check your email to verify your account.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
 
 @app.route('/verify/<token>')
-def verify_email(token):  # email verification endpoint
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def verify_email(token):
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT id, email FROM users WHERE verification_token = %s', (token,)
-    )  # fetch user by token
-    user = cursor.fetchone()  # get user
+    )
+    user = cursor.fetchone()
     if user:
         cursor.execute(
             'UPDATE users SET email_verified = TRUE, verification_token = NULL WHERE id = %s',
             (user['id'],)
-        )  # mark verified
-        db.commit()  # commit
-        log_activity(user['id'], 'email_verification', 'User verified their email address')  # log activity
-        flash('Email verified successfully! You can now log in.', 'success')  # flash
+        )
+        db.commit()
+        log_activity(user['id'], 'email_verification', 'User verified their email address')
+        flash('Email verified successfully! You can now log in.', 'success')
     else:
-        flash('Invalid verification token.', 'danger')  # flash invalid token
-    return redirect(url_for('login'))  # redirect to login
+        flash('Invalid verification token.', 'danger')
+    return redirect(url_for('login'))
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
-def forgot_password():  # forgot password workflow
-    if request.method == 'POST':  # handle post
-        email = request.form['email']  # get email
-        db = get_db()  # get DB
-        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        db = get_db()
+        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cursor.execute(
             'SELECT id FROM users WHERE email = %s', (email,)
-        )  # find user
-        user = cursor.fetchone()  # fetch
+        )
+        user = cursor.fetchone()
         if user:
-            reset_token = generate_token()  # generate reset token
-            reset_token_expiry = datetime.now() + timedelta(hours=1)  # expiry 1 hour
+            reset_token = generate_token()
+            reset_token_expiry = datetime.now() + timedelta(hours=1)
             cursor.execute(
                 'UPDATE users SET reset_token = %s, reset_token_expiry = %s WHERE id = %s',
                 (reset_token, reset_token_expiry.strftime('%Y-%m-%d %H:%M:%S'), user['id'])
-            )  # store token and expiry
-            db.commit()  # commit
-            reset_url = url_for('reset_password', token=reset_token, _external=True)  # build reset URL
-            print(f"Password reset URL: {reset_url}")  # print for dev
-            flash('Password reset instructions have been sent to your email.', 'success')  # flash
+            )
+            db.commit()
+            reset_url = url_for('reset_password', token=reset_token, _external=True)
+            print(f"Password reset URL: {reset_url}")
+            flash('Password reset instructions have been sent to your email.', 'success')
         else:
-            flash('If that email address is in our system, we\'ve sent a password reset link to it.', 'success')  # generic message
-        return redirect(url_for('login'))  # redirect to login
-    return render_template('forgot_password.html')  # render forgot password page
+            flash('If that email address is in our system, we\'ve sent a password reset link to it.', 'success')
+        return redirect(url_for('login'))
+    return render_template('forgot_password.html')
 
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
-def reset_password(token):  # reset password page
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def reset_password(token):
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT id, reset_token_expiry FROM users WHERE reset_token = %s', (token,)
-    )  # fetch by reset token
-    user = cursor.fetchone()  # get user
-    if not user or not user['reset_token_expiry']:  # invalid or missing expiry
-        flash('Invalid or expired reset token.', 'danger')  # flash
-        return redirect(url_for('login'))  # redirect
-    expiry_str = str(user['reset_token_expiry'])  # get expiry as string
+    )
+    user = cursor.fetchone()
+    if not user or not user['reset_token_expiry']:
+        flash('Invalid or expired reset token.', 'danger')
+        return redirect(url_for('login'))
+    expiry_str = str(user['reset_token_expiry'])
     try:
-        expiry = datetime.strptime(expiry_str, '%Y-%m-%d %H:%M:%S')  # try parse without microseconds
+        expiry = datetime.strptime(expiry_str, '%Y-%m-%d %H:%M:%S')
     except ValueError:
-        expiry = datetime.strptime(expiry_str, '%Y-%m-%d %H:%M:%S.%f')  # parse with microseconds
-    if datetime.now() > expiry:  # expired
-        flash('Invalid or expired reset token.', 'danger')  # flash
-        return redirect(url_for('login'))  # redirect
-    if request.method == 'POST':  # handle password reset post
-        password = request.form['password']  # new password
-        confirm_password = request.form['confirm_password']  # confirm
-        if password != confirm_password:  # mismatch
-            flash('Passwords do not match.', 'danger')  # flash
-            return render_template('reset_password.html', token=token)  # re-render
-        if len(password) < 8:  # length check
-            flash('Password must be at least 8 characters long.', 'danger')  # flash
-            return render_template('reset_password.html', token=token)  # re-render
-        hashed_password = generate_password_hash(password)  # hash new password
+        expiry = datetime.strptime(expiry_str, '%Y-%m-%d %H:%M:%S.%f')
+    if datetime.now() > expiry:
+        flash('Invalid or expired reset token.', 'danger')
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return render_template('reset_password.html', token=token)
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+            return render_template('reset_password.html', token=token)
+        hashed_password = generate_password_hash(password)
         cursor.execute(
             'UPDATE users SET password_hash = %s, reset_token = NULL, reset_token_expiry = NULL WHERE reset_token = %s',
             (hashed_password, token)
-        )  # update password and clear token
-        db.commit()  # commit
-        log_activity(user['id'], 'password_reset', 'User reset their password')  # log activity
-        flash('Password reset successfully! You can now log in with your new password.', 'success')  # flash
-        return redirect(url_for('login'))  # redirect to login
-    return render_template('reset_password.html', token=token)  # render reset form
+        )
+        db.commit()
+        log_activity(user['id'], 'password_reset', 'User reset their password')
+        flash('Password reset successfully! You can now log in with your new password.', 'success')
+        return redirect(url_for('login'))
+    return render_template('reset_password.html', token=token)
 
 @app.route('/logout')
-def logout():  # logout route
+def logout():
     if 'user_id' in session:
-        log_activity(session['user_id'], 'logout', 'User logged out')  # log logout
-    session.clear()  # clear session
-    flash('You have been logged out.', 'info')  # flash
-    return redirect(url_for('home'))  # go home
+        log_activity(session['user_id'], 'logout', 'User logged out')
+    session.clear()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('home'))
 
 @app.route('/client_portal')
 @login_required
-def client_portal():  # client portal route for logged in users
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def client_portal():
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT * FROM services WHERE user_id = %s', (session['user_id'],)
-    )  # fetch user's services
-    user_services = cursor.fetchall()  # fetch all
-    return render_template('client_portal.html', services=user_services)  # render portal
+    )
+    user_services = cursor.fetchall()
+    return render_template('client_portal.html', services=user_services)
 
 @app.route('/profile')
 @login_required
-def profile():  # user profile page
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def profile():
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT * FROM users WHERE id = %s', (session['user_id'],)
-    )  # fetch user record
-    user = cursor.fetchone()  # fetch
-    return render_template('profile.html', user=user)  # render profile
+    )
+    user = cursor.fetchone()
+    return render_template('profile.html', user=user)
 
 @app.route('/update_profile', methods=['POST'])
 @login_required
-def update_profile():  # update profile action
-    name = request.form['name']  # new name
-    email = request.form['email']  # new email
-    company = request.form.get('company', '')  # company
-    phone = request.form.get('phone', '')  # phone
-    title = request.form.get('title', '')  # title
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def update_profile():
+    name = request.form['name']
+    email = request.form['email']
+    company = request.form.get('company', '')
+    phone = request.form.get('phone', '')
+    title = request.form.get('title', '')
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT id FROM users WHERE email = %s AND id != %s', (email, session['user_id'])
-    )  # check email uniqueness
-    existing_user = cursor.fetchone()  # fetch
+    )
+    existing_user = cursor.fetchone()
     if existing_user:
-        flash('Email already taken by another account.', 'danger')  # flash
-        return redirect(url_for('profile'))  # redirect back
+        flash('Email already taken by another account.', 'danger')
+        return redirect(url_for('profile'))
     cursor.execute(
         'UPDATE users SET name = %s, email = %s, company = %s, phone = %s, title = %s WHERE id = %s',
         (name, email, company, phone, title, session['user_id'])
-    )  # update user fields
-    db.commit()  # commit
-    session['user_name'] = name  # update session name
-    session['user_email'] = email  # update session email
-    log_activity(session['user_id'], 'profile_update', 'User updated their profile')  # log activity
-    flash('Profile updated successfully!', 'success')  # flash
-    return redirect(url_for('profile'))  # redirect
+    )
+    db.commit()
+    session['user_name'] = name
+    session['user_email'] = email
+    log_activity(session['user_id'], 'profile_update', 'User updated their profile')
+    flash('Profile updated successfully!', 'success')
+    return redirect(url_for('profile'))
 
 @app.route('/change-password', methods=['GET', 'POST'])
 @login_required
-def change_password():  # allow logged-in user to change password
-    if request.method == 'POST':  # handle new password submission
-        current_password = request.form['current_password']  # current pw
-        new_password = request.form['new_password']  # new pw
-        confirm_password = request.form['confirm_password']  # confirm
-        if new_password != confirm_password:  # mismatch
-            flash('New passwords do not match.', 'danger')  # flash
-            return render_template('change_password.html')  # re-render
-        if len(new_password) < 8:  # length check
-            flash('New password must be at least 8 characters long.', 'danger')  # flash
-            return render_template('change_password.html')  # re-render
-        db = get_db()  # get DB
-        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form['current_password']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+        if new_password != confirm_password:
+            flash('New passwords do not match.', 'danger')
+            return render_template('change_password.html')
+        if len(new_password) < 8:
+            flash('New password must be at least 8 characters long.', 'danger')
+            return render_template('change_password.html')
+        db = get_db()
+        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cursor.execute(
             'SELECT password_hash FROM users WHERE id = %s', (session['user_id'],)
-        )  # fetch current hash
-        user = cursor.fetchone()  # fetch
-        if user and check_password_hash(user['password_hash'], current_password):  # verify current password
-            hashed_password = generate_password_hash(new_password)  # hash new one
+        )
+        user = cursor.fetchone()
+        if user and check_password_hash(user['password_hash'], current_password):
+            hashed_password = generate_password_hash(new_password)
             cursor.execute(
                 'UPDATE users SET password_hash = %s WHERE id = %s',
                 (hashed_password, session['user_id'])
-            )  # update DB
-            db.commit()  # commit
-            log_activity(session['user_id'], 'password_change', 'User changed their password')  # log
-            flash('Password changed successfully!', 'success')  # flash
-            return redirect(url_for('profile'))  # redirect
+            )
+            db.commit()
+            log_activity(session['user_id'], 'password_change', 'User changed their password')
+            flash('Password changed successfully!', 'success')
+            return redirect(url_for('profile'))
         else:
-            flash('Current password is incorrect.', 'danger')  # flash wrong current pw
-    return render_template('change_password.html')  # render change password page
+            flash('Current password is incorrect.', 'danger')
+    return render_template('change_password.html')
 
 @app.route('/admin/dashboard')
 @admin_required
-def admin_dashboard():  # admin dashboard route
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
-    cursor.execute('SELECT COUNT(*) as count FROM users')  # total users
-    total_users = cursor.fetchone()['count']  # fetch count
+def admin_dashboard():
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute('SELECT COUNT(*) as count FROM users')
+    total_users = cursor.fetchone()['count']
     cursor.execute('SELECT COUNT(*) as count FROM users WHERE last_login > %s', 
-                   ((datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S'),))  # active users last 30 days
-    total_active_users = cursor.fetchone()['count']  # fetch
-    cursor.execute('SELECT COUNT(*) as count FROM services')  # total services
-    total_services = cursor.fetchone()['count']  # fetch
-    cursor.execute("SELECT COUNT(*) as count FROM support_tickets WHERE status = 'open'")  # open tickets
-    open_tickets = cursor.fetchone()['count']  # fetch
+                   ((datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S'),))
+    total_active_users = cursor.fetchone()['count']
+    cursor.execute('SELECT COUNT(*) as count FROM services')
+    total_services = cursor.fetchone()['count']
+    cursor.execute("SELECT COUNT(*) as count FROM support_tickets WHERE status = 'open'")
+    open_tickets = cursor.fetchone()['count']
     cursor.execute('''
         SELECT ua.*, u.name, u.email 
         FROM user_activities ua 
         JOIN users u ON ua.user_id = u.id 
         ORDER BY ua.performed_at DESC 
         LIMIT 10
-    ''')  # recent activities query
-    recent_activities = cursor.fetchall()  # fetch rows
+    ''')
+    recent_activities = cursor.fetchall()
     cursor.execute('''
         SELECT name, email, created_at 
         FROM users 
         ORDER BY created_at DESC 
         LIMIT 5
-    ''')  # recent signups
-    recent_signups = cursor.fetchall()  # fetch
+    ''')
+    recent_signups = cursor.fetchall()
     return render_template('admin_dashboard.html', 
                          total_users=total_users,
                          total_active_users=total_active_users,
                          total_services=total_services,
                          open_tickets=open_tickets,
                          recent_activities=recent_activities,
-                         recent_signups=recent_signups)  # render admin dashboard
+                         recent_signups=recent_signups)
 
 @app.route('/admin/users')
 @admin_required
-def admin_users():  # list all users for admin
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def admin_users():
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT id, name, email, role, email_verified, created_at, last_login FROM users ORDER BY created_at DESC'
-    )  # select users
-    users = cursor.fetchall()  # fetch
-    return render_template('admin_users.html', users=users)  # render users list
+    )
+    users = cursor.fetchall()
+    return render_template('admin_users.html', users=users)
 
 @app.route('/admin/user/<int:user_id>')
 @admin_required
-def admin_user_detail(user_id):  # view user detail
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def admin_user_detail(user_id):
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT * FROM users WHERE id = %s', (user_id,)
-    )  # fetch user
-    user = cursor.fetchone()  # get user
+    )
+    user = cursor.fetchone()
     if not user:
-        flash('User not found.', 'danger')  # flash not found
-        return redirect(url_for('admin_users'))  # redirect
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_users'))
     cursor.execute(
         'SELECT * FROM services WHERE user_id = %s', (user_id,)
-    )  # user's services
-    user_services = cursor.fetchall()  # fetch
+    )
+    user_services = cursor.fetchall()
     cursor.execute(
         'SELECT * FROM user_activities WHERE user_id = %s ORDER BY performed_at DESC LIMIT 20', (user_id,)
-    )  # activity history
-    user_activities = cursor.fetchall()  # fetch
+    )
+    user_activities = cursor.fetchall()
     cursor.execute(
         'SELECT * FROM support_tickets WHERE user_id = %s ORDER BY created_at DESC', (user_id,)
-    )  # support tickets
-    user_tickets = cursor.fetchall()  # fetch
+    )
+    user_tickets = cursor.fetchall()
     return render_template('admin_user_detail.html', 
                          user=user,
                          services=user_services,
                          activities=user_activities,
-                         tickets=user_tickets)  # render user detail
+                         tickets=user_tickets)
 
 @app.route('/admin/user/<int:user_id>/edit', methods=['GET', 'POST'])
 @admin_required
-def admin_edit_user(user_id):  # edit user by admin
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def admin_edit_user(user_id):
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT * FROM users WHERE id = %s', (user_id,)
-    )  # fetch user
-    user = cursor.fetchone()  # get user
+    )
+    user = cursor.fetchone()
     if not user:
-        flash('User not found.', 'danger')  # flash
-        return redirect(url_for('admin_users'))  # redirect
-    if request.method == 'POST':  # handle edit form
-        name = request.form['name']  # new name
-        email = request.form['email']  # new email
-        company = request.form.get('company', '')  # company
-        phone = request.form.get('phone', '')  # phone
-        title = request.form.get('title', '')  # title
-        role = request.form.get('role', 'user')  # role selection
-        email_verified = 1 if 'email_verified' in request.form else 0  # checkbox
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_users'))
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        company = request.form.get('company', '')
+        phone = request.form.get('phone', '')
+        title = request.form.get('title', '')
+        role = request.form.get('role', 'user')
+        email_verified = 1 if 'email_verified' in request.form else 0
         if email != user['email']:
             cursor.execute(
                 'SELECT id FROM users WHERE email = %s AND id != %s', (email, user_id)
-            )  # ensure email unique
-            existing_user = cursor.fetchone()  # fetch
+            )
+            existing_user = cursor.fetchone()
             if existing_user:
-                flash('Email already taken by another account.', 'danger')  # flash
-                return redirect(url_for('admin_edit_user', user_id=user_id))  # redirect
+                flash('Email already taken by another account.', 'danger')
+                return redirect(url_for('admin_edit_user', user_id=user_id))
         cursor.execute(
             'UPDATE users SET name = %s, email = %s, company = %s, phone = %s, title = %s, role = %s, email_verified = %s WHERE id = %s',
             (name, email, company, phone, title, role, email_verified, user_id)
-        )  # update user
-        db.commit()  # commit
-        log_activity(session['user_id'], 'admin_user_edit', f'Admin edited user {user_id}')  # log admin action
-        flash('User updated successfully!', 'success')  # flash
-        return redirect(url_for('admin_user_detail', user_id=user_id))  # go to detail
-    return render_template('admin_edit_user.html', user=user)  # render edit form
+        )
+        db.commit()
+        log_activity(session['user_id'], 'admin_user_edit', f'Admin edited user {user_id}')
+        flash('User updated successfully!', 'success')
+        return redirect(url_for('admin_user_detail', user_id=user_id))
+    return render_template('admin_edit_user.html', user=user)
 
 @app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
 @admin_required
-def admin_delete_user(user_id):  # delete user by admin
+def admin_delete_user(user_id):
     if user_id == session['user_id']:
-        flash('You cannot delete your own account.', 'danger')  # prevent self-delete
-        return redirect(url_for('admin_users'))  # redirect
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+        flash('You cannot delete your own account.', 'danger')
+        return redirect(url_for('admin_users'))
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT * FROM users WHERE id = %s', (user_id,)
-    )  # fetch user
-    user = cursor.fetchone()  # get user
+    )
+    user = cursor.fetchone()
     if not user:
-        flash('User not found.', 'danger')  # flash
-        return redirect(url_for('admin_users'))  # redirect
-    cursor.execute('DELETE FROM user_activities WHERE user_id = %s', (user_id,))  # delete activities
-    cursor.execute('DELETE FROM services WHERE user_id = %s', (user_id,))  # delete services
-    cursor.execute('DELETE FROM support_tickets WHERE user_id = %s', (user_id,))  # delete tickets
-    cursor.execute('DELETE FROM users WHERE id = %s', (user_id,))  # delete user
-    db.commit()  # commit
-    log_activity(session['user_id'], 'admin_user_delete', f'Admin deleted user {user_id}')  # log action
-    flash('User deleted successfully!', 'success')  # flash
-    return redirect(url_for('admin_users'))  # redirect
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_users'))
+    cursor.execute('DELETE FROM user_activities WHERE user_id = %s', (user_id,))
+    cursor.execute('DELETE FROM services WHERE user_id = %s', (user_id,))
+    cursor.execute('DELETE FROM support_tickets WHERE user_id = %s', (user_id,))
+    cursor.execute('DELETE FROM users WHERE id = %s', (user_id,))
+    db.commit()
+    log_activity(session['user_id'], 'admin_user_delete', f'Admin deleted user {user_id}')
+    flash('User deleted successfully!', 'success')
+    return redirect(url_for('admin_users'))
 
 @app.route('/admin/user/<int:user_id>/impersonate')
 @admin_required
-def admin_impersonate_user(user_id):  # admin impersonation route
+def admin_impersonate_user(user_id):
     if user_id == session['user_id']:
-        flash('You cannot impersonate yourself.', 'danger')  # guard
-        return redirect(url_for('admin_users'))  # redirect
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+        flash('You cannot impersonate yourself.', 'danger')
+        return redirect(url_for('admin_users'))
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT * FROM users WHERE id = %s', (user_id,)
-    )  # fetch target user
-    user = cursor.fetchone()  # get user
+    )
+    user = cursor.fetchone()
     if not user:
-        flash('User not found.', 'danger')  # flash
-        return redirect(url_for('admin_users'))  # redirect
-    session['original_admin_id'] = session['user_id']  # store original admin id
-    session['original_admin_name'] = session['user_name']  # store admin name
-    session['original_admin_email'] = session['user_email']  # store admin email
-    session['user_id'] = user['id']  # set session to impersonated user
-    session['user_email'] = user['email']  # set email
-    session['user_name'] = user['name']  # set name
-    session['user_role'] = user['role']  # set role
-    session['is_impersonating'] = True  # mark impersonation
-    log_activity(session['original_admin_id'], 'admin_impersonate', f'Admin impersonated user {user_id}')  # log
-    flash(f'Now impersonating {user["name"]}.', 'info')  # flash info
-    return redirect(url_for('client_portal'))  # go to client portal
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_users'))
+    session['original_admin_id'] = session['user_id']
+    session['original_admin_name'] = session['user_name']
+    session['original_admin_email'] = session['user_email']
+    session['user_id'] = user['id']
+    session['user_email'] = user['email']
+    session['user_name'] = user['name']
+    session['user_role'] = user['role']
+    session['is_impersonating'] = True
+    log_activity(session['original_admin_id'], 'admin_impersonate', f'Admin impersonated user {user_id}')
+    flash(f'Now impersonating {user["name"]}.', 'info')
+    return redirect(url_for('client_portal'))
 
 @app.route('/admin/stop-impersonating')
-def admin_stop_impersonating():  # stop impersonation and restore admin session
+def admin_stop_impersonating():
     if 'original_admin_id' not in session or not session.get('is_impersonating'):
-        flash('Not currently impersonating any user.', 'warning')  # not impersonating
-        return redirect(url_for('home'))  # redirect
-    session['user_id'] = session['original_admin_id']  # restore admin id
-    session['user_email'] = session['original_admin_email']  # restore email
-    session['user_name'] = session['original_admin_name']  # restore name
-    session['user_role'] = 'admin'  # restore role
-    session.pop('original_admin_id', None)  # remove stored admin id
-    session.pop('original_admin_name', None)  # remove stored name
-    session.pop('original_admin_email', None)  # remove stored email
-    session.pop('is_impersonating', None)  # remove flag
-    flash('Stopped impersonating. Welcome back!', 'success')  # flash
-    return redirect(url_for('admin_dashboard'))  # redirect to admin dashboard
+        flash('Not currently impersonating any user.', 'warning')
+        return redirect(url_for('home'))
+    session['user_id'] = session['original_admin_id']
+    session['user_email'] = session['original_admin_email']
+    session['user_name'] = session['original_admin_name']
+    session['user_role'] = 'admin'
+    session.pop('original_admin_id', None)
+    session.pop('original_admin_name', None)
+    session.pop('original_admin_email', None)
+    session.pop('is_impersonating', None)
+    flash('Stopped impersonating. Welcome back!', 'success')
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/services')
 @admin_required
-def admin_services():  # admin view of all services
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def admin_services():
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute('''
         SELECT s.*, u.name as user_name, u.email as user_email 
         FROM services s 
         JOIN users u ON s.user_id = u.id 
         ORDER BY s.purchased_on DESC
-    ''')  # join services with users
-    services = cursor.fetchall()  # fetch records
-    return render_template('admin_services.html', services=services)  # render
+    ''')
+    services = cursor.fetchall()
+    return render_template('admin_services.html', services=services)
 
 @app.route('/admin/tickets')
 @admin_required
-def admin_tickets():  # admin list support tickets
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def admin_tickets():
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute('''
         SELECT t.*, u.name as user_name, u.email as user_email 
         FROM support_tickets t 
         JOIN users u ON t.user_id = u.id 
         ORDER BY t.created_at DESC
-    ''')  # join tickets with users
-    tickets = cursor.fetchall()  # fetch
-    return render_template('admin_tickets.html', tickets=tickets)  # render
+    ''')
+    tickets = cursor.fetchall()
+    return render_template('admin_tickets.html', tickets=tickets)
 
 @app.route('/admin/ticket/<int:ticket_id>')
 @admin_required
-def admin_ticket_detail(ticket_id):  # view a specific ticket
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def admin_ticket_detail(ticket_id):
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute('''
         SELECT t.*, u.name as user_name, u.email as user_email 
         FROM support_tickets t 
         JOIN users u ON t.user_id = u.id 
         WHERE t.id = %s
-    ''', (ticket_id,))  # fetch ticket by id
-    ticket = cursor.fetchone()  # get ticket
+    ''', (ticket_id,))
+    ticket = cursor.fetchone()
     if not ticket:
-        flash('Ticket not found.', 'danger')  # flash
-        return redirect(url_for('admin_tickets'))  # redirect
-    return render_template('admin_ticket_detail.html', ticket=ticket)  # render detail
+        flash('Ticket not found.', 'danger')
+        return redirect(url_for('admin_tickets'))
+    return render_template('admin_ticket_detail.html', ticket=ticket)
 
 @app.route('/admin/ticket/<int:ticket_id>/update', methods=['POST'])
 @admin_required
-def admin_update_ticket(ticket_id):  # update ticket status/notes
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def admin_update_ticket(ticket_id):
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT * FROM support_tickets WHERE id = %s', (ticket_id,)
-    )  # fetch ticket
-    ticket = cursor.fetchone()  # get
+    )
+    ticket = cursor.fetchone()
     if not ticket:
-        flash('Ticket not found.', 'danger')  # flash
-        return redirect(url_for('admin_tickets'))  # redirect
-    status = request.form['status']  # new status
-    notes = request.form.get('notes', '')  # notes
+        flash('Ticket not found.', 'danger')
+        return redirect(url_for('admin_tickets'))
+    status = request.form['status']
+    notes = request.form.get('notes', '')
     cursor.execute(
         'UPDATE support_tickets SET status = %s, updated_at = %s, notes = %s WHERE id = %s',
         (status, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), notes, ticket_id)
-    )  # update ticket
-    db.commit()  # commit
-    log_activity(session['user_id'], 'admin_ticket_update', f'Admin updated ticket {ticket_id} to {status}')  # log action
-    flash('Ticket updated successfully!', 'success')  # flash
-    return redirect(url_for('admin_ticket_detail', ticket_id=ticket_id))  # redirect back
+    )
+    db.commit()
+    log_activity(session['user_id'], 'admin_ticket_update', f'Admin updated ticket {ticket_id} to {status}')
+    flash('Ticket updated successfully!', 'success')
+    return redirect(url_for('admin_ticket_detail', ticket_id=ticket_id))
 
 @app.route('/admin/activities')
 @admin_required
-def admin_activities():  # list recent activities for admin
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def admin_activities():
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute('''
         SELECT ua.*, u.name, u.email 
         FROM user_activities ua 
         JOIN users u ON ua.user_id = u.id 
         ORDER BY ua.performed_at DESC 
         LIMIT 100
-    ''')  # query activities
-    activities = cursor.fetchall()  # fetch
-    return render_template('admin_activities.html', activities=activities)  # render
+    ''')
+    activities = cursor.fetchall()
+    return render_template('admin_activities.html', activities=activities)
 
 @app.route('/admin/login-attempts')
 @admin_required
-def admin_login_attempts():  # view recent login attempts
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def admin_login_attempts():
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute('''
         SELECT * FROM login_attempts ORDER BY attempted_at DESC LIMIT 100
-    ''')  # fetch attempts
-    attempts = cursor.fetchall()  # fetch
-    return render_template('admin_login_attempts.html', attempts=attempts)  # render
+    ''')
+    attempts = cursor.fetchall()
+    return render_template('admin_login_attempts.html', attempts=attempts)
 
 @app.route('/initdb')
-def init_database():  # endpoint to initialize DB (developer use)
+def init_database():
     try:
-        db = get_db()  # get DB
-        init_db(db)  # initialize
-        return 'Database initialized successfully!'  # success message
+        db = get_db()
+        init_db(db)
+        return 'Database initialized successfully!'
     except Exception as e:
-        return f'Error initializing database: {str(e)}'  # error message
+        return f'Error initializing database: {str(e)}'
 
 @app.route('/tools/sqli_scanner', methods=['GET', 'POST'])
-def sqli_scanner():  # SQLi scanning UI
-    if request.method == 'POST':  # handle form
-        url = request.form.get('url', '').strip()  # target URL
+def sqli_scanner():
+    if request.method == 'POST':
+        url = request.form.get('url', '').strip()
         if not url:
-            flash('Please enter a URL', 'danger')  # require URL
-            return render_template('sqli_scanner.html')  # render form
+            flash('Please enter a URL', 'danger')
+            return render_template('sqli_scanner.html')
         
         try:
             # Ensure URL starts with http:// or https://
             if not url.startswith(('http://', 'https://')):
-                url = 'https://' + url  # default to https
+                url = 'https://' + url
             
-            flash('SQL Injection scan started. This may take a few moments...', 'info')  # notify user
+            flash('SQL Injection scan started. This may take a few moments...', 'info')
             
             # Perform SQL Injection scan
-            vulnerabilities = scan_sql_injection(url)  # run scanner
-            risk_level = calculate_vulnerability_risk(vulnerabilities)  # compute risk
+            vulnerabilities = scan_sql_injection(url)
+            risk_level = calculate_vulnerability_risk(vulnerabilities)
             
             # Log the scan
-            db = get_db()  # get DB
-            cursor = db.cursor()  # cursor
+            db = get_db()
+            cursor = db.cursor()
             cursor.execute(
                 'INSERT INTO scan_results (user_id, tool_type, target_url, scan_data, results, risk_level, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)',
                 (session.get('user_id'), 'sql_injection', url, json.dumps(vulnerabilities), 
                  f"Found {len(vulnerabilities)} SQL Injection vulnerabilities", 
                  risk_level, datetime.now())
-            )  # store scan result
-            db.commit()  # commit
+            )
+            db.commit()
             
             return render_template('sqli_scanner.html', 
                                  url=url, 
                                  vulnerabilities=vulnerabilities,
                                  risk_level=risk_level,
-                                 scan_completed=True)  # render results
+                                 scan_completed=True)
             
         except Exception as e:
-            flash(f'Error during SQL Injection scan: {str(e)}', 'danger')  # flash error
-            print(f"SQL Injection scan error: {e}")  # print error
+            flash(f'Error during SQL Injection scan: {str(e)}', 'danger')
+            print(f"SQL Injection scan error: {e}")
     
-    return render_template('sqli_scanner.html')  # render scanner page
+    return render_template('sqli_scanner.html')
 
 @app.route('/tools/xss_scanner', methods=['GET', 'POST'])
-def xss_scanner():  # XSS scanning UI
+def xss_scanner():
     if request.method == 'POST':
-        url = request.form.get('url', '').strip()  # get URL
+        url = request.form.get('url', '').strip()
         if not url:
-            flash('Please enter a URL', 'danger')  # require URL
-            return render_template('xss_scanner.html')  # render
+            flash('Please enter a URL', 'danger')
+            return render_template('xss_scanner.html')
         
         try:
             # Ensure URL starts with http:// or https://
             if not url.startswith(('http://', 'https://')):
-                url = 'https://' + url  # default scheme
+                url = 'https://' + url
             
-            flash('XSS scan started. This may take a few moments...', 'info')  # notify
+            flash('XSS scan started. This may take a few moments...', 'info')
             
             # Perform XSS scan
-            vulnerabilities = scan_xss_vulnerabilities(url)  # run scanner
-            risk_level = calculate_vulnerability_risk(vulnerabilities)  # risk
+            vulnerabilities = scan_xss_vulnerabilities(url)
+            risk_level = calculate_vulnerability_risk(vulnerabilities)
             
             # Log the scan
-            db = get_db()  # get DB
-            cursor = db.cursor()  # cursor
+            db = get_db()
+            cursor = db.cursor()
             cursor.execute(
                 'INSERT INTO scan_results (user_id, tool_type, target_url, scan_data, results, risk_level, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)',
                 (session.get('user_id'), 'xss', url, json.dumps(vulnerabilities), 
                  f"Found {len(vulnerabilities)} XSS vulnerabilities", 
                  risk_level, datetime.now())
-            )  # store result
-            db.commit()  # commit
+            )
+            db.commit()
             
             return render_template('xss_scanner.html', 
                                  url=url, 
                                  vulnerabilities=vulnerabilities,
                                  risk_level=risk_level,
-                                 scan_completed=True)  # render results
+                                 scan_completed=True)
             
         except Exception as e:
-            flash(f'Error during XSS scan: {str(e)}', 'danger')  # flash
-            print(f"XSS scan error: {e}")  # print error
+            flash(f'Error during XSS scan: {str(e)}', 'danger')
+            print(f"XSS scan error: {e}")
     
-    return render_template('xss_scanner.html')  # render page
+    return render_template('xss_scanner.html')
 
 @app.route('/tools/csrf_scanner', methods=['GET', 'POST'])
-def csrf_scanner():  # CSRF scanning UI
+def csrf_scanner():
     if request.method == 'POST':
-        url = request.form.get('url', '').strip()  # get URL
+        url = request.form.get('url', '').strip()
         if not url:
-            flash('Please enter a URL', 'danger')  # require
-            return render_template('csrf_scanner.html')  # render
+            flash('Please enter a URL', 'danger')
+            return render_template('csrf_scanner.html')
         
         try:
             # Ensure URL starts with http:// or https://
             if not url.startswith(('http://', 'https://')):
-                url = 'https://' + url  # default
+                url = 'https://' + url
             
-            flash('CSRF scan started. This may take a few moments...', 'info')  # notify
+            flash('CSRF scan started. This may take a few moments...', 'info')
             
             # Perform CSRF scan
-            vulnerabilities = scan_csrf_vulnerabilities(url)  # run scanner
-            risk_level = calculate_vulnerability_risk(vulnerabilities)  # risk
+            vulnerabilities = scan_csrf_vulnerabilities(url)
+            risk_level = calculate_vulnerability_risk(vulnerabilities)
             
             # Log the scan
-            db = get_db()  # get DB
-            cursor = db.cursor()  # cursor
+            db = get_db()
+            cursor = db.cursor()
             cursor.execute(
                 'INSERT INTO scan_results (user_id, tool_type, target_url, scan_data, results, risk_level, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)',
                 (session.get('user_id'), 'csrf', url, json.dumps(vulnerabilities), 
                  f"Found {len(vulnerabilities)} CSRF vulnerabilities", 
                  risk_level, datetime.now())
-            )  # store result
-            db.commit()  # commit
+            )
+            db.commit()
             
             return render_template('csrf_scanner.html', 
                                  url=url, 
                                  vulnerabilities=vulnerabilities,
                                  risk_level=risk_level,
-                                 scan_completed=True)  # render
+                                 scan_completed=True)
             
         except Exception as e:
-            flash(f'Error during CSRF scan: {str(e)}', 'danger')  # flash
-            print(f"CSRF scan error: {e}")  # print error
+            flash(f'Error during CSRF scan: {str(e)}', 'danger')
+            print(f"CSRF scan error: {e}")
     
-    return render_template('csrf_scanner.html')  # render page
+    return render_template('csrf_scanner.html')
 
 @app.route('/tools/comprehensive_scan', methods=['GET', 'POST'])
-def comprehensive_scan():  # run multiple scanners selected by user
+def comprehensive_scan():
     if request.method == 'POST':
-        url = request.form.get('url', '').strip()  # target url
-        scan_types = request.form.getlist('scan_types')  # selected scan types
+        url = request.form.get('url', '').strip()
+        scan_types = request.form.getlist('scan_types')
         
         if not url:
-            flash('Please enter a URL', 'danger')  # require url
-            return render_template('comprehensive_scan.html')  # render
+            flash('Please enter a URL', 'danger')
+            return render_template('comprehensive_scan.html')
+        
         if not scan_types:
-            flash('Please select at least one scan type', 'danger')  # require at least one
-            return render_template('comprehensive_scan.html')  # render
+            flash('Please select at least one scan type', 'danger')
+            return render_template('comprehensive_scan.html')
         
         try:
             # Ensure URL starts with http:// or https://
             if not url.startswith(('http://', 'https://')):
-                url = 'https://' + url  # default
+                url = 'https://' + url
             
-            flash('Comprehensive vulnerability scan started. This may take a few moments...', 'info')  # notify
+            flash('Comprehensive vulnerability scan started. This may take a few moments...', 'info')
             
-            all_vulnerabilities = []  # collect all findings
+            all_vulnerabilities = []
             
             if 'sql' in scan_types:
-                all_vulnerabilities.extend(scan_sql_injection(url))  # add SQLi findings
+                all_vulnerabilities.extend(scan_sql_injection(url))
             
             if 'xss' in scan_types:
-                all_vulnerabilities.extend(scan_xss_vulnerabilities(url))  # add XSS findings
+                all_vulnerabilities.extend(scan_xss_vulnerabilities(url))
             
             if 'csrf' in scan_types:
-                all_vulnerabilities.extend(scan_csrf_vulnerabilities(url))  # add CSRF findings
+                all_vulnerabilities.extend(scan_csrf_vulnerabilities(url))
             
-            risk_level = calculate_vulnerability_risk(all_vulnerabilities)  # compute overall risk
+            risk_level = calculate_vulnerability_risk(all_vulnerabilities)
             
             # Log the scan
-            db = get_db()  # get DB
-            cursor = db.cursor()  # cursor
+            db = get_db()
+            cursor = db.cursor()
             cursor.execute(
                 'INSERT INTO scan_results (user_id, tool_type, target_url, scan_data, results, risk_level, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)',
                 (session.get('user_id'), 'comprehensive_scan', url, json.dumps(all_vulnerabilities), 
                  f"Found {len(all_vulnerabilities)} vulnerabilities in comprehensive scan", 
                  risk_level, datetime.now())
-            )  # store scan result
-            db.commit()  # commit
+            )
+            db.commit()
             
             return render_template('comprehensive_scan.html', 
                                  url=url, 
                                  vulnerabilities=all_vulnerabilities,
                                  risk_level=risk_level,
                                  scan_completed=True,
-                                 scan_types=scan_types)  # render results
+                                 scan_types=scan_types)
             
         except Exception as e:
-            flash(f'Error during comprehensive scan: {str(e)}', 'danger')  # flash
-            print(f"Comprehensive scan error: {e}")  # print error
+            flash(f'Error during comprehensive scan: {str(e)}', 'danger')
+            print(f"Comprehensive scan error: {e}")
     
-    return render_template('comprehensive_scan.html')  # render page
+    return render_template('comprehensive_scan.html')
 
 @app.route('/tools/port_scanner', methods=['GET', 'POST'])
-def port_scanner():  # port scanner UI
+def port_scanner():
     if request.method == 'POST':
-        target = request.form.get('target', '').strip()  # target host
-        port_range = request.form.get('port_range', 'common')  # preset or custom
-        custom_ports = request.form.get('custom_ports', '').strip()  # custom input
+        target = request.form.get('target', '').strip()
+        port_range = request.form.get('port_range', 'common')
+        custom_ports = request.form.get('custom_ports', '').strip()
         
         if not target:
-            flash('Please enter a target IP or domain', 'danger')  # require
-            return render_template('port_scanner.html')  # render
+            flash('Please enter a target IP or domain', 'danger')
+            return render_template('port_scanner.html')
         
         if not is_valid_ip(target):
-            flash('Please enter a valid IP address or domain name', 'danger')  # validate
-            return render_template('port_scanner.html')  # render
+            flash('Please enter a valid IP address or domain name', 'danger')
+            return render_template('port_scanner.html')
         
         try:
             # Determine which ports to scan
             if port_range == 'common':
-                ports = [21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 3306, 3389, 5432, 27017, 6379]  # common ports
+                ports = [21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 3306, 3389, 5432, 27017, 6379]
             elif port_range == 'custom' and custom_ports:
                 try:
                     ports = []
                     for port_str in custom_ports.split(','):
-                        port_str = port_str.strip()  # trim
+                        port_str = port_str.strip()
                         if '-' in port_str:
-                            start, end = map(int, port_str.split('-'))  # range
-                            ports.extend(range(start, end + 1))  # expand range
+                            start, end = map(int, port_str.split('-'))
+                            ports.extend(range(start, end + 1))
                         else:
-                            ports.append(int(port_str))  # single port
-                    ports = list(set(ports))  # deduplicate
+                            ports.append(int(port_str))
+                    ports = list(set(ports))  # Remove duplicates
                     if len(ports) > 100:
-                        flash('Too many ports specified. Maximum 100 ports allowed.', 'warning')  # limit ports
-                        ports = ports[:100]  # trim
+                        flash('Too many ports specified. Maximum 100 ports allowed.', 'warning')
+                        ports = ports[:100]
                 except ValueError:
-                    flash('Invalid port format. Use commas and/or ranges (e.g., 80,443 or 1-100)', 'danger')  # invalid format
-                    return render_template('port_scanner.html')  # render
+                    flash('Invalid port format. Use commas and/or ranges (e.g., 80,443 or 1-100)', 'danger')
+                    return render_template('port_scanner.html')
             else:
-                ports = [21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 3306, 3389, 5432, 27017, 6379]  # fallback
+                ports = [21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 3306, 3389, 5432, 27017, 6379]
             
-            flash(f'Port scan started for {target}. Scanning {len(ports)} ports...', 'info')  # notify
+            flash(f'Port scan started for {target}. Scanning {len(ports)} ports...', 'info')
             
             # Perform port scan
-            open_ports, error = port_scanner_scan(target, ports)  # run scan
+            open_ports, error = port_scanner_scan(target, ports)
             
             if error:
-                flash(f'Scan error: {error}', 'danger')  # show error
-                return render_template('port_scanner.html')  # render
+                flash(f'Scan error: {error}', 'danger')
+                return render_template('port_scanner.html')
             
             # Prepare results
             port_results = []
@@ -1449,120 +1399,110 @@ def port_scanner():  # port scanner UI
                     'port': port,
                     'service': get_service_name(port),
                     'status': 'Open'
-                })  # prepare result entry
+                })
             
             # Log the scan
-            db = get_db()  # get DB
-            cursor = db.cursor()  # cursor
+            db = get_db()
+            cursor = db.cursor()
             cursor.execute(
                 'INSERT INTO scan_results (user_id, tool_type, target_url, scan_data, results, risk_level, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)',
                 (session.get('user_id'), 'port_scanner', target, json.dumps(port_results), 
                  f"Found {len(open_ports)} open ports on {target}", 
                  'Medium' if len(open_ports) > 0 else 'Low', datetime.now())
-            )  # store result
-            db.commit()  # commit
+            )
+            db.commit()
             
             return render_template('port_scanner.html', 
                                  target=target,
                                  port_results=port_results,
                                  total_ports=len(ports),
-                                 scan_completed=True)  # render results
+                                 scan_completed=True)
             
         except Exception as e:
-            flash(f'Error during port scan: {str(e)}', 'danger')  # flash
-            print(f"Port scan error: {e}")  # print error
+            flash(f'Error during port scan: {str(e)}', 'danger')
+            print(f"Port scan error: {e}")
     
-    return render_template('port_scanner.html')  # render page
+    return render_template('port_scanner.html')
 
 @app.route('/tools/network_diagnostics', methods=['GET', 'POST'])
-def network_diagnostics():  # network diagnostics UI (ping/traceroute)
+def network_diagnostics():
     if request.method == 'POST':
-        target = request.form.get('target', '').strip()  # target
-        diagnostic_type = request.form.get('diagnostic_type', 'ping')  # chosen diagnostic
+        target = request.form.get('target', '').strip()
+        diagnostic_type = request.form.get('diagnostic_type', 'ping')
         
         if not target:
-            flash('Please enter a target IP or domain', 'danger')  # require
-            return render_template('network_diagnostics.html')  # render
+            flash('Please enter a target IP or domain', 'danger')
+            return render_template('network_diagnostics.html')
         
         if not is_valid_ip(target):
-            flash('Please enter a valid IP address or domain name', 'danger')  # validate
-            return render_template('network_diagnostics.html')  # render
+            flash('Please enter a valid IP address or domain name', 'danger')
+            return render_template('network_diagnostics.html')
         
         try:
-            results = {}  # collect results
+            results = {}
             
             if diagnostic_type in ['ping', 'both']:
-                flash(f'Pinging {target}...', 'info')  # notify
-                ping_success, ping_output, ping_error = ping_host(target)  # call ping_host
+                flash(f'Pinging {target}...', 'info')
+                ping_success, ping_output, ping_error = ping_host(target)
                 results['ping'] = {
                     'success': ping_success,
                     'output': ping_output,
                     'error': ping_error
-                }  # store ping results
+                }
             
             if diagnostic_type in ['traceroute', 'both']:
-                flash(f'Running traceroute to {target}...', 'info')  # notify
-                trace_success, trace_output, trace_error = traceroute_host(target)  # traceroute
+                flash(f'Running traceroute to {target}...', 'info')
+                trace_success, trace_output, trace_error = traceroute_host(target)
                 results['traceroute'] = {
                     'success': trace_success,
                     'output': trace_output,
                     'error': trace_error
-                }  # store trace results
+                }
             
             # Log the scan
-            db = get_db()  # get DB
-            cursor = db.cursor()  # cursor
+            db = get_db()
+            cursor = db.cursor()
             cursor.execute(
                 'INSERT INTO scan_results (user_id, tool_type, target_url, scan_data, results, risk_level, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)',
                 (session.get('user_id'), 'network_diagnostics', target, json.dumps(results), 
                  f"Network diagnostics for {target}", 
                  'Info', datetime.now())
-            )  # store results
-            db.commit()  # commit
+            )
+            db.commit()
             
             return render_template('network_diagnostics.html', 
                                  target=target,
                                  diagnostic_type=diagnostic_type,
                                  results=results,
-                                 scan_completed=True)  # render
+                                 scan_completed=True)
             
         except Exception as e:
-            flash(f'Error during network diagnostics: {str(e)}', 'danger')  # flash
-            print(f"Network diagnostics error: {e}")  # print error
+            flash(f'Error during network diagnostics: {str(e)}', 'danger')
+            print(f"Network diagnostics error: {e}")
     
-    return render_template('network_diagnostics.html')  # render page
+    return render_template('network_diagnostics.html')
 
+@app.route('/security_tools')
 @app.route('/security-tools')
-def security_tools():  # security tools landing page
-    return render_template('security_tools.html')  # render template
-
-@app.route("/ping", methods=["GET", "POST"])
-def ping_route():  # simple ping route for UI
-    result = None  # default
-    if request.method == "POST":
-        target = request.form.get("target", "").strip()  # get target
-        if target:
-            result = ping_host(target)  # ping host
-        else:
-            result = "⚠️ Please enter a valid host to ping."  # validation message
-    return render_template("ping.html", result=result)  # render ping page
+def security_tools():
+    return render_template('security_tools.html')
 
 @app.route('/tools/security_headers', methods=['GET', 'POST'])
-def security_headers_tool():  # analyze HTTP security headers
+def security_headers_tool():
     if request.method == 'POST':
-        url = request.form.get('url', '').strip()  # get URL
+        url = request.form.get('url', '').strip()
         if not url:
-            flash('Please enter a URL', 'danger')  # require
-            return render_template('security_headers_tool.html')  # render
+            flash('Please enter a URL', 'danger')
+            return render_template('security_headers_tool.html')
         
         try:
             # Ensure URL starts with http:// or https://
             if not url.startswith(('http://', 'https://')):
-                url = 'https://' + url  # default
+                url = 'https://' + url
             
             # Make HEAD request to get headers
-            response = requests.head(url, timeout=10, allow_redirects=True)  # send HEAD
-            headers = dict(response.headers)  # dict of headers
+            response = requests.head(url, timeout=10, allow_redirects=True)
+            headers = dict(response.headers)
             
             # Analyze security headers
             security_headers = {
@@ -1591,404 +1531,148 @@ def security_headers_tool():  # analyze HTTP security headers
                     'value': headers.get('Referrer-Policy', 'Not set'),
                     'risk': 'low' if 'Referrer-Policy' not in headers else 'low'
                 }
-            }  # build header analysis
+            }
             
             # Calculate overall risk
-            risk_count = sum(1 for header in security_headers.values() if header['risk'] in ['high', 'medium'])  # count problematic headers
-            overall_risk = 'high' if risk_count >= 3 else 'medium' if risk_count >= 1 else 'low'  # derive overall risk
+            risk_count = sum(1 for header in security_headers.values() if header['risk'] in ['high', 'medium'])
+            overall_risk = 'high' if risk_count >= 3 else 'medium' if risk_count >= 1 else 'low'
             
             # Log the scan
-            db = get_db()  # get DB
-            cursor = db.cursor()  # cursor
+            db = get_db()
+            cursor = db.cursor()
             cursor.execute(
                 'INSERT INTO scan_results (user_id, tool_type, target_url, scan_data, results, risk_level, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)',
                 (session.get('user_id'), 'security_headers', url, json.dumps(security_headers), 
                  f"Found {len([h for h in security_headers.values() if h['present']])} security headers", 
                  overall_risk, datetime.now())
-            )  # store result
-            db.commit()  # commit
+            )
+            db.commit()
             
             return render_template('security_headers_tool.html', 
                                  url=url, 
                                  headers=security_headers, 
                                  overall_risk=overall_risk,
-                                 all_headers=headers)  # render analysis
+                                 all_headers=headers)
             
         except requests.RequestException as e:
-            flash(f'Error scanning URL: {str(e)}', 'danger')  # request error
+            flash(f'Error scanning URL: {str(e)}', 'danger')
         except Exception as e:
-            flash('An unexpected error occurred', 'danger')  # generic error
-            print(f"Security headers scan error: {e}")  # print
+            flash('An unexpected error occurred', 'danger')
+            print(f"Security headers scan error: {e}")
     
-    return render_template('security_headers_tool.html')  # render page
+    return render_template('security_headers_tool.html')
 
 @app.route('/tools/dns_lookup', methods=['GET', 'POST'])
-def dns_lookup_tool():  # DNS lookup UI
+def dns_lookup_tool():
     if request.method == 'POST':
-        domain = request.form.get('domain', '').strip()  # domain input
-        record_type = request.form.get('record_type', 'A')  # record type selection
+        domain = request.form.get('domain', '').strip()
+        record_type = request.form.get('record_type', 'A')
         
         if not domain:
-            flash('Please enter a domain name', 'danger')  # require domain
-            return render_template('dns_lookup_tool.html')  # render
+            flash('Please enter a domain name', 'danger')
+            return render_template('dns_lookup_tool.html')
         
         try:
-            results = {}  # collection
+            results = {}
             
             if record_type == 'all' or record_type == 'A':
                 try:
-                    answers = dns.resolver.resolve(domain, 'A')  # query A records
-                    results['A'] = [str(rdata) for rdata in answers]  # store
+                    answers = dns.resolver.resolve(domain, 'A')
+                    results['A'] = [str(rdata) for rdata in answers]
                 except:
-                    results['A'] = ['No records found']  # fallback
+                    results['A'] = ['No records found']
             
             if record_type == 'all' or record_type == 'AAAA':
                 try:
-                    answers = dns.resolver.resolve(domain, 'AAAA')  # AAAA records
-                    results['AAAA'] = [str(rdata) for rdata in answers]  # store
+                    answers = dns.resolver.resolve(domain, 'AAAA')
+                    results['AAAA'] = [str(rdata) for rdata in answers]
                 except:
-                    results['AAAA'] = ['No records found']  # fallback
+                    results['AAAA'] = ['No records found']
             
             if record_type == 'all' or record_type == 'MX':
                 try:
-                    answers = dns.resolver.resolve(domain, 'MX')  # MX records
-                    results['MX'] = [str(rdata) for rdata in answers]  # store
+                    answers = dns.resolver.resolve(domain, 'MX')
+                    results['MX'] = [str(rdata) for rdata in answers]
                 except:
-                    results['MX'] = ['No records found']  # fallback
+                    results['MX'] = ['No records found']
             
             if record_type == 'all' or record_type == 'TXT':
                 try:
-                    answers = dns.resolver.resolve(domain, 'TXT')  # TXT records
-                    results['TXT'] = [str(rdata) for rdata in answers]  # store
+                    answers = dns.resolver.resolve(domain, 'TXT')
+                    results['TXT'] = [str(rdata) for rdata in answers]
                 except:
-                    results['TXT'] = ['No records found']  # fallback
+                    results['TXT'] = ['No records found']
             
             if record_type == 'all' or record_type == 'NS':
                 try:
-                    answers = dns.resolver.resolve(domain, 'NS')  # NS records
-                    results['NS'] = [str(rdata) for rdata in answers]  # store
+                    answers = dns.resolver.resolve(domain, 'NS')
+                    results['NS'] = [str(rdata) for rdata in answers]
                 except:
-                    results['NS'] = ['No records found']  # fallback
+                    results['NS'] = ['No records found']
             
             # Get WHOIS information
             try:
-                whois_info = whois.whois(domain)  # perform WHOIS
+                whois_info = whois.whois(domain)
                 results['WHOIS'] = {
                     'registrar': whois_info.registrar,
                     'creation_date': str(whois_info.creation_date),
                     'expiration_date': str(whois_info.expiration_date),
                     'name_servers': whois_info.name_servers
-                }  # store WHOIS data
+                }
             except:
-                results['WHOIS'] = {'error': 'WHOIS information not available'}  # fallback
+                results['WHOIS'] = {'error': 'WHOIS information not available'}
             
             # Log the scan
-            db = get_db()  # get DB
-            cursor = db.cursor()  # cursor
+            db = get_db()
+            cursor = db.cursor()
             cursor.execute(
                 'INSERT INTO scan_results (user_id, tool_type, target_url, scan_data, results, risk_level, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)',
                 (session.get('user_id'), 'dns_lookup', domain, json.dumps({'record_type': record_type}), 
                  f"DNS lookup for {record_type} records", 
                  'info', datetime.now())
-            )  # store lookup action
-            db.commit()  # commit
+            )
+            db.commit()
             
             return render_template('dns_lookup_tool.html', 
                                  domain=domain, 
                                  record_type=record_type,
-                                 results=results)  # render results
+                                 results=results)
             
         except Exception as e:
-            flash(f'Error performing DNS lookup: {str(e)}', 'danger')  # flash
-            print(f"DNS lookup error: {e}")  # print
+            flash(f'Error performing DNS lookup: {str(e)}', 'danger')
+            print(f"DNS lookup error: {e}")
     
-    return render_template('dns_lookup_tool.html')  # render page
+    return render_template('dns_lookup_tool.html')
 
 @app.route('/tools/password-checker')
-def password_checker_tool():  # password checker page
-    return render_template('password_checker_tool.html')  # render
+def password_checker_tool():
+    return render_template('password_checker_tool.html')
 
 @app.route('/tools/hash-generator')
-def hash_generator_tool():  # hash generator page
-    return render_template('hash_generator_tool.html')  # render
+def hash_generator_tool():
+    return render_template('hash_generator_tool.html')
 
 @app.route('/scan_history')
 @login_required
-def scan_history():  # show user's previous scans
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
+def scan_history():
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(
         'SELECT * FROM scan_results WHERE user_id = %s ORDER BY created_at DESC', (session['user_id'],)
-    )  # fetch scans for user
-    scans = cursor.fetchall()  # fetch
-    return render_template('scan_history.html', scans=scans)  # render
+    )
+    scans = cursor.fetchall()
+    return render_template('scan_history.html', scans=scans)
 
 @app.route('/admin/scan_results')
 @admin_required
-def admin_scan_results():  # admin view recent scan results
-    db = get_db()  # get DB
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)  # dict cursor
-    cursor.execute(
-        'SELECT sr.*, u.name, u.email FROM scan_results sr LEFT JOIN users u ON sr.user_id = u.id ORDER BY sr.created_at DESC LIMIT 100'
-    )  # fetch recent scans
-    scans = cursor.fetchall()  # fetch
-    return render_template('admin_scan_results.html', scans=scans)  # render
-
-@app.route('/debug-login', methods=['POST'])
-def debug_login():
-    """Debug login to see what's happening during authentication"""
-    email = request.form['email']
-    password = request.form['password']
-    ip_address = request.remote_addr
-    
+def admin_scan_results():
     db = get_db()
     cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
-    user = cursor.fetchone()
-    
-    if user:
-        from werkzeug.security import check_password_hash
-        password_correct = check_password_hash(user['password_hash'], password)
-        
-        response = f"""
-        User found: {user['email']}<br>
-        User ID: {user['id']}<br>
-        Role: {user['role']}<br>
-        Password correct: {password_correct}<br>
-        Session before login: {dict(session)}<br>
-        """
-        
-        if password_correct:
-            # Simulate the login process
-            session['user_id'] = user['id']
-            session['user_email'] = user['email']
-            session['user_name'] = user['name']
-            session['user_role'] = user['role']
-            
-            response += f"<br>Session after login: {dict(session)}<br>"
-            response += f"<br>Login successful! You should be redirected."
-        
-        return response
-    else:
-        return "User not found"
+    cursor.execute(
+        'SELECT sr.*, u.name, u.email FROM scan_results sr LEFT JOIN users u ON sr.user_id = u.id ORDER BY sr.created_at DESC LIMIT 100'
+    )
+    scans = cursor.fetchall()
+    return render_template('admin_scan_results.html', scans=scans)
 
-@app.route('/check-session')
-def check_session():
-    """Check current session status"""
-    return f"""
-    Current session: {dict(session)}<br>
-    User ID in session: {'user_id' in session}<br>
-    User role: {session.get('user_role', 'None')}<br>
-    Session permanent: {session.permanent}<br>
-    """
-
-@app.route('/test-admin-access')
-@admin_required
-def test_admin_access():
-    """Test if admin access works"""
-    return "Admin access successful! You are logged in as admin."
-
-@app.route('/test-client-access')
-@login_required
-def test_client_access():
-    """Test if regular login works"""
-    return "Client access successful! You are logged in."
-
-@app.route('/debug-db')
-def debug_db():
-    """Debug database connection"""
-    try:
-        db = get_db()
-        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cursor.execute('SELECT version()')
-        version = cursor.fetchone()
-        cursor.execute('SELECT current_database()')
-        db_name = cursor.fetchone()
-        cursor.execute('SELECT current_user')
-        user = cursor.fetchone()
-        
-        return f"""
-        Database connection successful!<br>
-        PostgreSQL Version: {version['version']}<br>
-        Database: {db_name['current_database']}<br>
-        User: {user['current_user']}<br>
-        Connection details: {db.dsn}<br>
-        """
-    except Exception as e:
-        return f"Database connection failed: {str(e)}"
-
-@app.route('/debug-users')
-def debug_users():
-    """Debug users table"""
-    try:
-        db = get_db()
-        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cursor.execute('SELECT * FROM users')
-        users = cursor.fetchall()
-        
-        result = "Users in database:<br>"
-        for user in users:
-            result += f"ID: {user['id']}, Email: {user['email']}, Role: {user['role']}<br>"
-        return result
-    except Exception as e:
-        return f"Error reading users: {str(e)}"
-    
-@app.route('/debug-login-process', methods=['POST'])
-def debug_login_process():
-    """Debug the entire login process step by step"""
-    email = request.form['email']
-    password = request.form['password']
-    ip_address = request.remote_addr
-    
-    debug_output = []
-    
-    try:
-        # Step 1: Check brute force
-        debug_output.append("Step 1: Checking brute force...")
-        brute_force = is_brute_force(email, ip_address)
-        debug_output.append(f"Brute force result: {brute_force}")
-        
-        if brute_force:
-            return "Blocked by brute force protection"
-        
-        # Step 2: Get user from database
-        debug_output.append("Step 2: Querying database for user...")
-        db = get_db()
-        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
-        user = cursor.fetchone()
-        
-        if not user:
-            return "User not found"
-        
-        debug_output.append(f"User found: ID={user['id']}, Email={user['email']}, Role={user['role']}")
-        
-        # Step 3: Check password
-        debug_output.append("Step 3: Checking password...")
-        password_correct = check_password_hash(user['password_hash'], password)
-        debug_output.append(f"Password correct: {password_correct}")
-        
-        if not password_correct:
-            return "Password incorrect"
-        
-        # Step 4: Set session
-        debug_output.append("Step 4: Setting session data...")
-        session.clear()
-        session['user_id'] = user['id']
-        session['user_email'] = user['email'] 
-        session['user_name'] = user['name']
-        session['user_role'] = user.get('role', 'user')
-        
-        debug_output.append(f"Session after setting: {dict(session)}")
-        
-        # Step 5: Update last login
-        debug_output.append("Step 5: Updating last login...")
-        cursor.execute(
-            'UPDATE users SET last_login = %s WHERE id = %s',
-            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user['id'])
-        )
-        db.commit()
-        
-        # Step 6: Log activities
-        debug_output.append("Step 6: Logging activities...")
-        log_activity(user['id'], 'login', 'User logged in successfully', ip_address)
-        log_login_attempt(email, True, ip_address)
-        
-        # Step 7: Final session check
-        debug_output.append("Step 7: Final session check...")
-        session.modified = True
-        debug_output.append(f"Final session: {dict(session)}")
-        
-        return "<br>".join(debug_output)
-        
-    except Exception as e:
-        debug_output.append(f"ERROR: {str(e)}")
-        return "<br>".join(debug_output)
-    
-@app.route('/debug-brute-force')
-def debug_brute_force():
-    """Debug the brute force detection"""
-    email = 'admin@21centurysolutions.com'
-    ip_address = '127.0.0.1'  # Mock IP for testing
-    
-    try:
-        db = get_db()
-        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        
-        # Check login_attempts table exists and has data
-        cursor.execute("""
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' AND table_name = 'login_attempts'
-        """)
-        table_exists = cursor.fetchone()
-        
-        if not table_exists:
-            return "login_attempts table does not exist"
-        
-        # Count recent failures
-        cursor.execute(
-            'SELECT COUNT(*) as count FROM login_attempts WHERE email = %s AND ip_address = %s AND success = 0 AND attempted_at > %s',
-            (email, ip_address, (datetime.now() - timedelta(minutes=15)).strftime('%Y-%m-%d %H:%M:%S'))
-        )
-        recent_failures = cursor.fetchone()
-        
-        return f"Brute force check: Table exists: {table_exists is not None}, Recent failures: {recent_failures['count']}"
-        
-    except Exception as e:
-        return f"Brute force debug error: {str(e)}"
-    
-@app.route('/test-fixed-login', methods=['GET', 'POST'])
-def test_fixed_login():
-    """Test login with the fixed brute force check"""
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        
-        try:
-            # Test brute force check first
-            brute_result = is_brute_force(email, request.remote_addr)
-            print(f"Brute force check result: {brute_result}")
-            
-            if brute_result:
-                return "Blocked by brute force protection (but check passed!)"
-            
-            # Continue with normal login
-            db = get_db()
-            cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
-            user = cursor.fetchone()
-            
-            if user and check_password_hash(user['password_hash'], password):
-                session.clear()
-                session['user_id'] = user['id']
-                session['user_email'] = user['email']
-                session['user_name'] = user['name']
-                session['user_role'] = user['role']
-                session.permanent = True
-                
-                # Log successful attempt
-                log_login_attempt(email, True, request.remote_addr)
-                
-                return f"""
-                Login successful!<br>
-                Session set: {dict(session)}<br>
-                <a href="/check-session">Check Session</a><br>
-                <a href="/admin/dashboard">Go to Admin Dashboard</a>
-                """
-            else:
-                # Log failed attempt
-                log_login_attempt(email, False, request.remote_addr)
-                return "Invalid credentials"
-                
-        except Exception as e:
-            return f"Error: {str(e)}"
-    
-    return '''
-    <form method="post">
-        <input type="email" name="email" value="admin@21centurysolutions.com" required>
-        <input type="password" name="password" value="changeme123" required>
-        <button type="submit">Test Fixed Login</button>
-    </form>
-    '''    
-    
+if __name__ == '__main__':
+    app.run(debug=True, threaded=False)
