@@ -177,7 +177,7 @@ def log_login_attempt(email, success, ip_address=None):
         cursor = db.cursor()
         cursor.execute(
             'INSERT INTO login_attempts (email, ip_address, attempted_at, success) VALUES (%s, %s, %s, %s)',
-            (email, ip_address, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), (success)
+            (email, ip_address, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), success)
         )
         db.commit()
     except Exception as e:
