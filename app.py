@@ -183,19 +183,19 @@ def log_login_attempt(email, success, ip_address=None):
     except Exception as e:
         print(f"Error logging login attempt: {e}")
 
-def is_brute_force(email, ip_address):
-    try:
-        db = get_db()
-        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cursor.execute(
-            'SELECT COUNT(*) as count FROM login_attempts WHERE email = %s AND ip_address = %s AND success = 0 AND attempted_at > %s',
-            (email, ip_address, (datetime.now() - timedelta(minutes=15)).strftime('%Y-%m-%d %H:%M:%S'))
-        )
-        recent_failures = cursor.fetchone()
-        return recent_failures['count'] >= 5 if recent_failures else False
-    except Exception as e:
-        print(f"Error checking brute force: {e}")
-        return False
+# def is_brute_force(email, ip_address):
+#     try:
+#         db = get_db()
+#         cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+#         cursor.execute(
+#             'SELECT COUNT(*) as count FROM login_attempts WHERE email = %s AND ip_address = %s AND success = 0 AND attempted_at > %s',
+#             (email, ip_address, (datetime.now() - timedelta(minutes=15)).strftime('%Y-%m-%d %H:%M:%S'))
+#         )
+#         recent_failures = cursor.fetchone()
+#         return recent_failures['count'] >= 5 if recent_failures else False
+#     except Exception as e:
+#         print(f"Error checking brute force: {e}")
+#         return False
 
 def generate_token():
     return str(uuid.uuid4())
