@@ -26,6 +26,11 @@ load_dotenv()  # load environment variables from .env
 
 app = Flask(__name__)  # create Flask app
 app.secret_key = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'  # secret for sessions
+# session configuration
+app.config['SESSION_COOKIE_SECURE'] = True  # Required for HTTPS on Render
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.config['PGHOST'] = os.environ.get('PGHOST')  # Postgres host from env
 app.config['PGDATABASE'] = os.environ.get('PGDATABASE')  # Postgres database name
 app.config['PGUSER'] = os.environ.get('PGUSER')  # Postgres user
@@ -1697,3 +1702,63 @@ def admin_scan_results():  # admin view recent scan results
     )  # fetch recent scans
     scans = cursor.fetchall()  # fetch
     return render_template('admin_scan_results.html', scans=scans)  # render
+
+@app.route('/debug-login', methods=['POST'])
+def debug_login():
+    """Debug login to see what's happening during authentication"""
+    email = request.form['email']
+    password = request.form['password']
+    ip_address = request.remote_addr
+    
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+    user = cursor.fetchone()
+    
+    if user:
+        from werkzeug.security import check_password_hash
+        password_correct = check_password_hash(user['password_hash'], password)
+        
+        response = f"""
+        User found: {user['email']}<br>
+        User ID: {user['id']}<br>
+        Role: {user['role']}<br>
+        Password correct: {password_correct}<br>
+        Session before login: {dict(session)}<br>
+        """
+        
+        if password_correct:
+            # Simulate the login process
+            session['user_id'] = user['id']
+            session['user_email'] = user['email']
+            session['user_name'] = user['name']
+            session['user_role'] = user['role']
+            
+            response += f"<br>Session after login: {dict(session)}<br>"
+            response += f"<br>Login successful! You should be redirected."
+        
+        return response
+    else:
+        return "User not found"
+
+@app.route('/check-session')
+def check_session():
+    """Check current session status"""
+    return f"""
+    Current session: {dict(session)}<br>
+    User ID in session: {'user_id' in session}<br>
+    User role: {session.get('user_role', 'None')}<br>
+    Session permanent: {session.permanent}<br>
+    """
+
+@app.route('/test-admin-access')
+@admin_required
+def test_admin_access():
+    """Test if admin access works"""
+    return "Admin access successful! You are logged in as admin."
+
+@app.route('/test-client-access')
+@login_required
+def test_client_access():
+    """Test if regular login works"""
+    return "Client access successful! You are logged in."
