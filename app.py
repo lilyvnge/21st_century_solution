@@ -1847,3 +1847,110 @@ def debug_users():
         return result
     except Exception as e:
         return f"Error reading users: {str(e)}"
+    
+@app.route('/debug-login-process', methods=['POST'])
+def debug_login_process():
+    """Debug the entire login process step by step"""
+    email = request.form['email']
+    password = request.form['password']
+    ip_address = request.remote_addr
+    
+    debug_output = []
+    
+    try:
+        # Step 1: Check brute force
+        debug_output.append("Step 1: Checking brute force...")
+        brute_force = is_brute_force(email, ip_address)
+        debug_output.append(f"Brute force result: {brute_force}")
+        
+        if brute_force:
+            return "Blocked by brute force protection"
+        
+        # Step 2: Get user from database
+        debug_output.append("Step 2: Querying database for user...")
+        db = get_db()
+        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+        user = cursor.fetchone()
+        
+        if not user:
+            return "User not found"
+        
+        debug_output.append(f"User found: ID={user['id']}, Email={user['email']}, Role={user['role']}")
+        
+        # Step 3: Check password
+        debug_output.append("Step 3: Checking password...")
+        password_correct = check_password_hash(user['password_hash'], password)
+        debug_output.append(f"Password correct: {password_correct}")
+        
+        if not password_correct:
+            return "Password incorrect"
+        
+        # Step 4: Set session
+        debug_output.append("Step 4: Setting session data...")
+        session.clear()
+        session['user_id'] = user['id']
+        session['user_email'] = user['email'] 
+        session['user_name'] = user['name']
+        session['user_role'] = user.get('role', 'user')
+        
+        debug_output.append(f"Session after setting: {dict(session)}")
+        
+        # Step 5: Update last login
+        debug_output.append("Step 5: Updating last login...")
+        cursor.execute(
+            'UPDATE users SET last_login = %s WHERE id = %s',
+            (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user['id'])
+        )
+        db.commit()
+        
+        # Step 6: Log activities
+        debug_output.append("Step 6: Logging activities...")
+        log_activity(user['id'], 'login', 'User logged in successfully', ip_address)
+        log_login_attempt(email, True, ip_address)
+        
+        # Step 7: Final session check
+        debug_output.append("Step 7: Final session check...")
+        session.modified = True
+        debug_output.append(f"Final session: {dict(session)}")
+        
+        return "<br>".join(debug_output)
+        
+    except Exception as e:
+        debug_output.append(f"ERROR: {str(e)}")
+        return "<br>".join(debug_output)
+    
+@app.route('/debug-brute-force')
+def debug_brute_force():
+    """Debug the brute force detection"""
+    email = 'admin@21centurysolutions.com'
+    ip_address = '127.0.0.1'  # Mock IP for testing
+    
+    try:
+        db = get_db()
+        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        
+        # Check login_attempts table exists and has data
+        cursor.execute("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_name = 'login_attempts'
+        """)
+        table_exists = cursor.fetchone()
+        
+        if not table_exists:
+            return "login_attempts table does not exist"
+        
+        # Count recent failures
+        cursor.execute(
+            'SELECT COUNT(*) as count FROM login_attempts WHERE email = %s AND ip_address = %s AND success = 0 AND attempted_at > %s',
+            (email, ip_address, (datetime.now() - timedelta(minutes=15)).strftime('%Y-%m-%d %H:%M:%S'))
+        )
+        recent_failures = cursor.fetchone()
+        
+        return f"Brute force check: Table exists: {table_exists is not None}, Recent failures: {recent_failures['count']}"
+        
+    except Exception as e:
+        return f"Brute force debug error: {str(e)}"
+    
+    
