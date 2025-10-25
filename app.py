@@ -23,6 +23,8 @@ import ipaddress
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 load_dotenv()
+os.getenv('DATABASE_URL')
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
@@ -1644,10 +1646,6 @@ def dns_lookup_tool():
     
     return render_template('dns_lookup_tool.html')
 
-@app.route('/tools/password-checker')
-def password_checker_tool():
-    return render_template('password_checker_tool.html')
-
 @app.route('/tools/hash-generator')
 def hash_generator_tool():
     return render_template('hash_generator_tool.html')
@@ -1675,4 +1673,17 @@ def admin_scan_results():
     return render_template('admin_scan_results.html', scans=scans)
 
 if __name__ == '__main__':
-    app.run(debug=True, threaded=False)
+    # Automatically initialize the local database only in development
+    if os.getenv("FLASK_ENV") == "development":
+        try:
+            with app.app_context():
+                db = get_db()
+                init_db(db)
+                print("✅ Local database initialized successfully!")
+        except Exception as e:
+            print(f"❌ Error initializing local database: {e}")
+    else:
+        print("ℹ️ Skipping database initialization (running in production mode).")
+
+    # Run the Flask app
+    app.run(debug=os.getenv("FLASK_ENV") == "development", threaded=False)
